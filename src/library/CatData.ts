@@ -118,6 +118,13 @@ const nameToSpritesname = {
   Colourpoint: "colourpoint",
   Lynxpoint: "lynxpoint",
   Birchtabby: "birchtabby",
+  Cloud: "cloud",
+  Deer: "deer",
+  Emo: "emo",
+  Fire: "fire",
+  Honey: "honey",
+  Lightning: "lightning",
+  Wave: "wave",
 };
 
 const spritesnameToName = {
@@ -222,6 +229,13 @@ const spritesnameToName = {
   colourpoint: "Colourpoint",
   lynxpoint: "Lynxpoint",
   birchtabby: "Birchtabby",
+  cloud: "Cloud",
+  deer: "Deer",
+  emo: "Emo",
+  fire: "Fire",
+  honey: "Honey",
+  lightning: "Lightning",
+  wave: "Wave",
 };
 
 class CatData {

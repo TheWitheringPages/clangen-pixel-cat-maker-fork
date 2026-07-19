@@ -59,6 +59,8 @@
     "SNAKETWO"
   ],
   "plant_accessories": [
+    "CLOVER",
+    "DAISY",
     "MAPLE LEAF",
     "HOLLY",
     "BLUE BERRIES",
@@ -106,6 +108,7 @@
     "GOLDEN CREEPING JENNY"
   ],
   "wild_accessories": [
+    "MONARCH BUTTERFLY",
     "RED FEATHERS",
     "BLUE FEATHERS",
     "JAY FEATHERS",
