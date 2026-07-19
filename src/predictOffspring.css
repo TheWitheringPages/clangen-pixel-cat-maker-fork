@@ -51,6 +51,11 @@
   font: inherit;
 }
 
+.parent-saved-select {
+  width: 100%;
+  margin-top: 6px;
+}
+
 #amount-div {
   margin: 14px 0 0;
   color: var(--muted);

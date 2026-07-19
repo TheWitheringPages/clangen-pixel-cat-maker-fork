@@ -820,8 +820,15 @@ getElementByUniqueClassName("download-png-button").addEventListener(
     const exportCanvas = new OffscreenCanvas(size, size);
     const ctx = exportCanvas.getContext("2d")!;
     ctx.imageSmoothingEnabled = false;
-    ctx.fillStyle = catData.backgroundColour;
-    ctx.fillRect(0, 0, size, size);
+    const transparentPng = (
+      getElementByUniqueClassName(
+        "png-transparent-checkbox",
+      ) as HTMLInputElement
+    ).checked;
+    if (!transparentPng) {
+      ctx.fillStyle = catData.backgroundColour;
+      ctx.fillRect(0, 0, size, size);
+    }
     ctx.scale(scale, scale);
     ctx.drawImage(lastRenderedCat, 0, 0);
 
@@ -832,6 +839,60 @@ getElementByUniqueClassName("download-png-button").addEventListener(
       a.click();
       URL.revokeObjectURL(a.href);
     });
+  },
+);
+
+// ---- compare with a saved cat ----
+
+const compareSelect = getElementByUniqueClassName(
+  "compare-select",
+) as HTMLSelectElement;
+const compareBox = getElementByUniqueClassName("compare-box") as HTMLElement;
+const compareCanvas = getElementByUniqueClassName(
+  "compare-canvas",
+) as HTMLCanvasElement;
+const compareNameSpan = getElementByUniqueClassName(
+  "compare-name",
+) as HTMLElement;
+
+function hideCompare() {
+  compareBox.classList.add("hidden");
+}
+
+function showCompare(name: string, params: string) {
+  const url = new URL(document.URL);
+  const compareData = CatData.fromURL(
+    `${url.origin}${url.pathname}${params}`,
+  );
+
+  const offscreen = new OffscreenCanvas(50, 50);
+  drawCat(offscreen, compareData.getPelt(), compareData.spriteNumber)
+    .then(() => {
+      const ctx = compareCanvas.getContext("2d")!;
+      ctx.clearRect(0, 0, 50, 50);
+      ctx.drawImage(offscreen, 0, 0);
+      compareNameSpan.textContent = name;
+      compareBox.classList.remove("hidden");
+    })
+    .catch((err) => console.error(err));
+}
+
+compareSelect.addEventListener("change", () => {
+  const saved = loadSavedCats();
+  const entry = saved[Number(compareSelect.value)];
+  if (compareSelect.value === "" || !entry) {
+    hideCompare();
+    return;
+  }
+  showCompare(entry.name, entry.params);
+});
+
+getElementByUniqueClassName("compare-clear-button").addEventListener(
+  "click",
+  (e) => {
+    e.preventDefault();
+    compareSelect.value = "";
+    hideCompare();
   },
 );
 
@@ -859,6 +920,26 @@ function refreshSavedCatsList(selectIndex: number | null = null) {
   });
   if (selectIndex !== null) {
     savedCatsSelect.value = selectIndex.toString();
+  }
+
+  // keep the compare picker in sync, preserving the current choice
+  const compareValue = compareSelect.value;
+  compareSelect.innerHTML = "";
+  const noneOption = document.createElement("option");
+  noneOption.value = "";
+  noneOption.textContent = "None";
+  compareSelect.appendChild(noneOption);
+  saved.forEach((cat, i) => {
+    const option = document.createElement("option");
+    option.value = i.toString();
+    option.textContent = cat.name;
+    compareSelect.appendChild(option);
+  });
+  compareSelect.value = compareValue;
+  if (compareSelect.value !== compareValue) {
+    // the compared cat was deleted or renumbered
+    compareSelect.value = "";
+    hideCompare();
   }
 }
 
@@ -908,6 +989,100 @@ getElementByUniqueClassName("delete-cat-button").addEventListener(
     refreshSavedCatsList();
   },
 );
+
+// ---- gallery export / import ----
+
+getElementByUniqueClassName("export-gallery-button").addEventListener(
+  "click",
+  (e) => {
+    e.preventDefault();
+    const saved = loadSavedCats();
+    if (saved.length === 0) {
+      alert("You have no saved cats to export yet.");
+      return;
+    }
+    const blob = new Blob([JSON.stringify(saved, null, 2)], {
+      type: "application/json",
+    });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "pixel-cat-gallery.json";
+    a.click();
+    URL.revokeObjectURL(a.href);
+  },
+);
+
+const importGalleryInput = getElementByUniqueClassName(
+  "import-gallery-input",
+) as HTMLInputElement;
+
+getElementByUniqueClassName("import-gallery-button").addEventListener(
+  "click",
+  (e) => {
+    e.preventDefault();
+    importGalleryInput.click();
+  },
+);
+
+importGalleryInput.addEventListener("change", () => {
+  const file = importGalleryInput.files?.[0];
+  if (!file) {
+    return;
+  }
+  file
+    .text()
+    .then((text) => {
+      let parsed;
+      try {
+        parsed = JSON.parse(text);
+      } catch {
+        alert("That file isn't valid JSON.");
+        return;
+      }
+      if (!Array.isArray(parsed)) {
+        alert("That file doesn't look like a gallery export.");
+        return;
+      }
+
+      const incoming = parsed.filter(
+        (entry): entry is { name: string; params: string } =>
+          entry !== null &&
+          typeof entry === "object" &&
+          typeof entry.name === "string" &&
+          typeof entry.params === "string" &&
+          entry.params.startsWith("?"),
+      );
+      if (incoming.length === 0) {
+        alert("No valid cats found in that file.");
+        return;
+      }
+
+      const saved = loadSavedCats();
+      let added = 0;
+      for (const entry of incoming) {
+        const duplicate = saved.some(
+          (cat) => cat.name === entry.name && cat.params === entry.params,
+        );
+        if (!duplicate) {
+          saved.push({ name: entry.name, params: entry.params });
+          added++;
+        }
+      }
+      localStorage.setItem(SAVED_CATS_KEY, JSON.stringify(saved));
+      refreshSavedCatsList();
+      alert(
+        `Imported ${added} cat${added === 1 ? "" : "s"}` +
+          (added < incoming.length
+            ? ` (${incoming.length - added} already in your gallery)`
+            : "") +
+          ".",
+      );
+    })
+    .finally(() => {
+      // allow re-importing the same file later
+      importGalleryInput.value = "";
+    });
+});
 
 refreshSavedCatsList();
 

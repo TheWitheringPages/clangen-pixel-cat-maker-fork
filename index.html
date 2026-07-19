@@ -42,6 +42,24 @@
             class="cat-sprite-img"
             style="image-rendering: pixelated"
           />
+          <div class="compare-box hidden">
+            <canvas
+              class="compare-canvas"
+              width="50"
+              height="50"
+              style="image-rendering: pixelated"
+            ></canvas>
+            <div class="compare-label">
+              <span class="compare-name"></span>
+              <button
+                class="compare-clear-button"
+                type="button"
+                title="Stop comparing"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
         </div>
         <div class="card">
           <div class="form-row">
@@ -80,6 +98,18 @@
           <div class="form-row">
             <label>Reverse</label>
             <input class="reverse-checkbox" type="checkbox" />
+          </div>
+          <div class="form-row">
+            <label>Compare with</label>
+            <select class="compare-select">
+              <option value="">None</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label title="Download the PNG without the background colour">
+              Transparent PNG
+            </label>
+            <input class="png-transparent-checkbox" type="checkbox" />
           </div>
           <div class="button-column">
             <button class="randomize-all-button" type="button">
@@ -2268,6 +2298,19 @@
           <button class="save-cat-button">Save current cat</button>
           <button class="load-cat-button">Load</button>
           <button class="delete-cat-button">Delete</button>
+        </div>
+        <p class="section-note">
+          Saved cats only exist in this browser. Export them to a file to back
+          them up or share your roster with others.
+        </p>
+        <div>
+          <button class="export-gallery-button">Export gallery file</button>
+          <button class="import-gallery-button">Import gallery file</button>
+          <input
+            type="file"
+            class="import-gallery-input hidden"
+            accept="application/json,.json"
+          />
         </div>
       </details>
 

@@ -86,6 +86,49 @@ parent2Div?.addEventListener("drop", (ev) => {
   refreshParent2(data);
 });
 
+// saved cats from the cat maker can be picked as parents directly
+const SAVED_CATS_KEY = "pixel-cat-maker-saved-cats";
+
+function loadSavedCats(): { name: string; params: string }[] {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(SAVED_CATS_KEY) ?? "[]");
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+const savedCats = loadSavedCats();
+for (const select of Array.from(
+  document.querySelectorAll<HTMLSelectElement>(".parent-saved-select"),
+)) {
+  if (savedCats.length === 0) {
+    select.classList.add("hidden");
+    continue;
+  }
+  savedCats.forEach((cat, i) => {
+    const option = document.createElement("option");
+    option.value = i.toString();
+    option.textContent = cat.name;
+    select.appendChild(option);
+  });
+  select.addEventListener("change", () => {
+    const entry = savedCats[Number(select.value)];
+    if (select.value === "" || !entry) {
+      return;
+    }
+    const url =
+      new URL("index.html", location.href).toString() + entry.params;
+    if (select.dataset.parent === "1") {
+      parent1URLInput.value = url;
+      refreshParent1(url);
+    } else {
+      parent2URLInput.value = url;
+      refreshParent2(url);
+    }
+  });
+}
+
 regenerateButton.addEventListener("click", async () => {
   const d = document.getElementById("offspring")!;
   d.replaceChildren();

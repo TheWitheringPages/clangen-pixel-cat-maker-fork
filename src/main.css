@@ -162,6 +162,42 @@ form details {
     0 0 / 20px 20px;
 }
 
+.compare-box {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.compare-canvas {
+  width: 100px;
+  height: 100px;
+}
+
+.compare-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 2px 6px;
+  max-width: 45%;
+}
+
+.compare-name {
+  overflow-wrap: anywhere;
+}
+
+.compare-clear-button {
+  padding: 0 6px;
+}
+
 .cat-sprite-img {
   width: 100%;
   max-width: 280px;
