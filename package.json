@@ -1,0 +1,22 @@
+{
+  "name": "cat-dollmaker",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && node scripts/build-sprites.js && vite build",
+    "postbuild": "rm -r dist/sprites/*.png",
+    "preview": "vite preview",
+    "test": "vitest"
+  },
+  "devDependencies": {
+    "sharp": "^0.34.2",
+    "typescript": "~5.7.2",
+    "vite": "^6.4.1",
+    "vitest": "^4.0.18"
+  },
+  "dependencies": {
+    "@types/node": "^24.3.0"
+  }
+}

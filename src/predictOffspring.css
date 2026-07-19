@@ -1,0 +1,54 @@
+input[type="text"],
+label,
+button {
+  font-size: 16px;
+}
+
+input[type="number"] {
+  font-size: 18px;
+}
+
+button {
+  padding: 10px 10px;
+  border-radius: 5px;
+  background-color: #9a4328;
+  color: rgb(253, 251, 232);
+  border: none;
+  margin: 10px 0;
+}
+
+button:hover {
+  cursor: pointer;
+  background-color: #642211;
+}
+
+details {
+  margin-bottom: 15px;
+}
+
+details img {
+  max-width: 380px;
+}
+
+@media (max-width: 380px) {
+  details img {
+    width: 100%;
+  }
+}
+
+#parent1-canvas,
+#parent2-canvas {
+  display: block;
+}
+
+#amount-div {
+  margin: 10px 0 0 0;
+}
+
+.cat-link {
+  display: inline-block;
+  border-radius: 5px;
+}
+.cat-link:hover {
+  background-color: #fff4da;
+}
