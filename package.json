@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && node scripts/build-sprites.js && vite build",
-    "postbuild": "rm -r dist/sprites/*.png",
+    "postbuild": "node scripts/clean-spritesheets.js",
     "preview": "vite preview",
     "test": "vitest"
   },
