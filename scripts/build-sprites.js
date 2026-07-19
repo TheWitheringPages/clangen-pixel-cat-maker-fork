@@ -27,6 +27,26 @@ for (const [spriteGroupName, spriteGroupInfo] of Object.entries(spritesIndex)) {
   batch[spriteGroupInfo.spritesheet][spriteGroupName] = spriteGroupInfo;
 }
 
+// extra poses 21-25 live in their own sheet as 150x100 tiles
+// (3x2 grid of 50px sprites), described by spritesIndexNewPoses.json
+const EXTRA_POSES_PATH = "src/assets/spritesIndexNewPoses.json";
+if (fs.existsSync(EXTRA_POSES_PATH)) {
+  const extras = JSON.parse(fs.readFileSync(EXTRA_POSES_PATH));
+  const extraSheet = fs.readFileSync("public/sprites/newposes.png");
+  for (const [group, info] of Object.entries(extras)) {
+    for (let i = 0; i < 5; i++) {
+      sharp(extraSheet)
+        .extract({
+          left: info.xOffset + 50 * (i % 3),
+          top: info.yOffset + 50 * Math.floor(i / 3),
+          width: 50,
+          height: 50,
+        })
+        .toFile(`${OUTPUT_DIR}/${group}_${21 + i}.png`);
+    }
+  }
+}
+
 // by spritesheet
 for (const [spritesheet, info] of Object.entries(batch)) {
   const spritesheetImage = fs.readFileSync(`public/sprites/${spritesheet}.png`);
