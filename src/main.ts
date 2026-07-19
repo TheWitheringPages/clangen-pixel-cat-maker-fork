@@ -6,6 +6,7 @@ import errorImg from "./assets/error_placeholder.png";
 
 import CatData from "./library/CatData";
 import { AdjustSlot } from "./library/types";
+import { initThemeToggle } from "./library/theme";
 
 function getElementByUniqueClassName(className: string): Element {
   return document.getElementsByClassName(className)[0];
@@ -537,26 +538,7 @@ importJSONButton.addEventListener("click", (e) => {
   }
 })
 
-// ---- theme toggle ----
-
-const themeToggle = getElementByUniqueClassName(
-  "theme-toggle",
-) as HTMLButtonElement;
-
-function applyTheme(theme: string) {
-  document.documentElement.dataset.theme = theme;
-  themeToggle.textContent = theme === "dark" ? "☀️" : "🌙";
-}
-
-themeToggle.addEventListener("click", () => {
-  const next =
-    document.documentElement.dataset.theme === "dark" ? "light" : "dark";
-  localStorage.setItem("pcm-theme", next);
-  applyTheme(next);
-});
-
-// the pre-paint script in index.html already set the theme; sync the icon
-applyTheme(document.documentElement.dataset.theme ?? "light");
+initThemeToggle();
 
 // ---- colour adjustments ----
 

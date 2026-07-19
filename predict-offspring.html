@@ -1,67 +1,86 @@
 <!doctype html>
-<html>
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <title>ClanGen Offspring Predictor</title>
     <meta name="description" content="Predict ClanGen cat offspring!" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="stylesheet" href="" />
+    <script>
+      // set the theme before first paint to avoid a flash
+      document.documentElement.dataset.theme =
+        new URLSearchParams(location.search).get("theme") ??
+        localStorage.getItem("pcm-theme") ??
+        (matchMedia("(prefers-color-scheme: dark)").matches
+          ? "dark"
+          : "light");
+    </script>
   </head>
   <body>
-    <header>
-      <a href="index.html">Cat Maker</a> |
-      <a href="predict-offspring.html">Predict Offspring</a> |
+    <header class="site-header">
+      <span class="site-title">Pixel Cat Maker</span>
+      <nav>
+        <a href="index.html">Cat Maker</a>
+        <a href="predict-offspring.html">Predict Offspring</a>
+      </nav>
+      <button class="theme-toggle" type="button" title="Toggle dark mode">
+        🌙
+      </button>
     </header>
 
-    <details>
-      <summary>Where can I find cat URLs?</summary>
-      <img src="/src/assets/findURL.png" />
+    <main class="page">
+      <details>
+        <summary>Where can I find cat URLs?</summary>
+        <img src="/src/assets/findURL.png" alt="Where to find the cat URL" />
 
-      <p>
-        The cat maker URL in your address bar will also be updated whenever you
-        change the appearance of the cat.
-      </p>
-    </details>
+        <p class="section-note">
+          The cat maker URL in your address bar will also be updated whenever
+          you change the appearance of the cat.
+        </p>
+      </details>
 
-    <div>
-      <div id="parent1">
-        <canvas
-          style="image-rendering: pixelated"
-          id="parent1-canvas"
-          width="50"
-          height="50"
-        ></canvas>
+      <section class="card">
+        <h2>Parents</h2>
+        <div class="parents">
+          <div id="parent1" class="parent">
+            <canvas
+              style="image-rendering: pixelated"
+              id="parent1-canvas"
+              width="50"
+              height="50"
+            ></canvas>
 
-        <label>Parent 1 URL:</label>
-        <input id="parent1-url" type="text" />
-      </div>
-      <div id="parent2">
-        <canvas
-          style="image-rendering: pixelated"
-          id="parent2-canvas"
-          width="50"
-          height="50"
-        ></canvas>
+            <label>Parent 1 URL:</label>
+            <input id="parent1-url" type="text" />
+          </div>
+          <div id="parent2" class="parent">
+            <canvas
+              style="image-rendering: pixelated"
+              id="parent2-canvas"
+              width="50"
+              height="50"
+            ></canvas>
 
-        <label>Parent 2 URL:</label>
-        <input id="parent2-url" type="text" />
-      </div>
-    </div>
-    <div id="amount-div">
-      <label>Amount (1-100): </label
-      ><input
-        id="amount-input"
-        size="3"
-        min="1"
-        max="100"
-        type="number"
-        value="6"
-      />
-    </div>
-    <button id="regenerate-button">Predict Offspring</button>
+            <label>Parent 2 URL:</label>
+            <input id="parent2-url" type="text" />
+          </div>
+        </div>
+        <div id="amount-div">
+          <label>Amount (1-100): </label
+          ><input
+            id="amount-input"
+            size="3"
+            min="1"
+            max="100"
+            type="number"
+            value="6"
+          />
+        </div>
+        <button id="regenerate-button" type="button">Predict Offspring</button>
+      </section>
 
-    <div id="offspring"></div>
+      <div id="offspring"></div>
+    </main>
     <script type="module" src="/src/predictOffspring.ts"></script>
   </body>
 </html>

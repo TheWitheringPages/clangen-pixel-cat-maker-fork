@@ -1,6 +1,10 @@
+import "./main.css";
 import "./common.css";
 import "./predictOffspring.css";
+import { initThemeToggle } from "./library/theme";
 import { generateChildPelt } from "./library/inheritance";
+
+initThemeToggle();
 import CatData from "./library/CatData";
 import drawCat from "./library/drawCat";
 import { Pelt } from "./library/types";
