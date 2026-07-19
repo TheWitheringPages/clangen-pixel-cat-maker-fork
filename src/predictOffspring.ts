@@ -115,7 +115,7 @@ regenerateButton.addEventListener("click", async () => {
 
     const link = document.createElement("a");
     link.href = catData
-      .getURL("https://crazydrawsprojects.github.io/clangen-megamerge-pixel-cat-maker/")
+      .getURL(new URL("index.html", location.href).toString())
       .toString();
     link.target = "_blank";
     link.className = "cat-link";
@@ -147,14 +147,24 @@ regenerateButton.addEventListener("click", async () => {
 });
 
 // Startup code
-const randomParent1 = fanSubmittedParents.splice(
-  Math.floor(Math.random() * fanSubmittedParents.length),
-  1,
-)[0];
-parent1URLInput.value = randomParent1;
-refreshParent1(randomParent1);
+// parents picked via "Use as offspring parent" on the cat maker take
+// priority (?parent1= / ?parent2= URL params override localStorage);
+// otherwise fall back to a random fan-submitted parent
+const pageParams = new URLSearchParams(location.search);
 
-const randomParent2 =
+const parent1URL =
+  pageParams.get("parent1") ??
+  localStorage.getItem("pcm-parent-1") ??
+  fanSubmittedParents.splice(
+    Math.floor(Math.random() * fanSubmittedParents.length),
+    1,
+  )[0];
+parent1URLInput.value = parent1URL;
+refreshParent1(parent1URL);
+
+const parent2URL =
+  pageParams.get("parent2") ??
+  localStorage.getItem("pcm-parent-2") ??
   fanSubmittedParents[Math.floor(Math.random() * fanSubmittedParents.length)];
-parent2URLInput.value = randomParent2;
-refreshParent2(randomParent2);
+parent2URLInput.value = parent2URL;
+refreshParent2(parent2URL);

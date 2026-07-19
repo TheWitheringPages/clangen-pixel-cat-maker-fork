@@ -195,6 +195,10 @@ function setFormFromObject(data: CatData) {
   selectByValue(scarSelect, data.scar, false);
 
   syncAdjustUI();
+
+  // a different cat was loaded; its paint history no longer applies
+  paintUndoStack = [];
+  paintUndoButton.disabled = true;
 }
 
 function getDataURL() {
@@ -684,10 +688,60 @@ function paintAt(ev: PointerEvent) {
   redrawCat(false);
 }
 
+// ---- paint undo (one entry per stroke / clear) ----
+
+const paintDetails = getElementByUniqueClassName(
+  "paint-details",
+) as HTMLDetailsElement;
+const paintUndoButton = getElementByUniqueClassName(
+  "paint-undo-button",
+) as HTMLButtonElement;
+
+var paintUndoStack: Record<string, string>[] = [];
+
+function pushPaintUndo() {
+  paintUndoStack.push({ ...catData.paint });
+  if (paintUndoStack.length > 50) {
+    paintUndoStack.shift();
+  }
+  paintUndoButton.disabled = false;
+}
+
+function undoPaint() {
+  const previous = paintUndoStack.pop();
+  if (previous !== undefined) {
+    catData.paint = previous;
+    redrawCat();
+  }
+  paintUndoButton.disabled = paintUndoStack.length === 0;
+}
+
+paintUndoButton.addEventListener("click", (e) => {
+  e.preventDefault();
+  undoPaint();
+});
+
+document.addEventListener("keydown", (e) => {
+  const target = e.target as HTMLElement;
+  if (
+    e.ctrlKey &&
+    e.key.toLowerCase() === "z" &&
+    paintDetails.open &&
+    target.tagName !== "INPUT" &&
+    target.tagName !== "TEXTAREA"
+  ) {
+    e.preventDefault();
+    undoPaint();
+  }
+});
+
 var painting = false;
 paintCanvas.addEventListener("pointerdown", (ev) => {
   ev.preventDefault();
   painting = true;
+  if (paintToolSelect.value !== "pick") {
+    pushPaintUndo();
+  }
   paintCanvas.setPointerCapture(ev.pointerId);
   paintAt(ev);
 });
@@ -699,6 +753,12 @@ paintCanvas.addEventListener("pointermove", (ev) => {
 paintCanvas.addEventListener("pointerup", () => {
   if (painting) {
     painting = false;
+    // drop the undo entry if the stroke didn't actually change anything
+    const last = paintUndoStack[paintUndoStack.length - 1];
+    if (last !== undefined && JSON.stringify(last) === JSON.stringify(catData.paint)) {
+      paintUndoStack.pop();
+      paintUndoButton.disabled = paintUndoStack.length === 0;
+    }
     // update the URL/sharecode once the stroke is finished
     redrawCat(true);
   }
@@ -708,8 +768,35 @@ getElementByUniqueClassName("paint-clear-button").addEventListener(
   "click",
   (e) => {
     e.preventDefault();
-    catData.paint = {};
-    redrawCat();
+    if (Object.keys(catData.paint).length > 0) {
+      pushPaintUndo();
+      catData.paint = {};
+      redrawCat();
+    }
+  },
+);
+
+// ---- use as offspring parent ----
+
+getElementByUniqueClassName("add-parent-button").addEventListener(
+  "click",
+  (e) => {
+    e.preventDefault();
+    const slot = prompt("Add this cat as which parent? Enter 1 or 2:", "1");
+    if (slot === null) {
+      return;
+    }
+    if (slot.trim() !== "1" && slot.trim() !== "2") {
+      alert("Please enter 1 or 2.");
+      return;
+    }
+    localStorage.setItem(
+      `pcm-parent-${slot.trim()}`,
+      getDataURL().toString(),
+    );
+    if (confirm(`Saved as parent ${slot.trim()}. Open the offspring predictor now?`)) {
+      location.href = "predict-offspring.html";
+    }
   },
 );
 
