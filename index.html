@@ -12,16 +12,90 @@
       name="google-site-verification"
       content="Pq-11M4oWkyd6Xt8Z-M-MTF0pm-jn-LPDpj9G-JcwD0"
     />
+    <script>
+      // set the theme before first paint to avoid a flash
+      document.documentElement.dataset.theme =
+        new URLSearchParams(location.search).get("theme") ??
+        localStorage.getItem("pcm-theme") ??
+        (matchMedia("(prefers-color-scheme: dark)").matches
+          ? "dark"
+          : "light");
+    </script>
   </head>
   <body>
-    <header>
-      <a href="index.html">Cat Maker</a> |
-      <a href="predict-offspring.html">Predict Offspring</a>
+    <header class="site-header">
+      <span class="site-title">Pixel Cat Maker</span>
+      <nav>
+        <a href="index.html">Cat Maker</a>
+        <a href="predict-offspring.html">Predict Offspring</a>
+      </nav>
+      <button class="theme-toggle" type="button" title="Toggle dark mode">
+        🌙
+      </button>
     </header>
 
-    <img draggable="true" class="cat-sprite-img" style="image-rendering: pixelated" />
+    <main class="layout">
+      <aside class="preview-panel">
+        <div class="card preview-card">
+          <img
+            draggable="true"
+            class="cat-sprite-img"
+            style="image-rendering: pixelated"
+          />
+        </div>
+        <div class="card">
+          <div class="form-row">
+            <label>Scale</label>
+            <select class="zoom-level">
+              <option value="1">1x</option>
+              <option value="2">2x</option>
+              <option selected value="3">3x</option>
+              <option value="4">4x</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label>BG Colour</label>
+            <select class="bg-color-select">
+              <option value="rgb(0 0 0 / 0)">Transparent</option>
+              <option value="rgb(255 255 255)">White</option>
+              <option value="rgb(0 0 0)">Black</option>
+              <option value="rgb(0 255 0)">Lime Green</option>
+              <option value="rgb(206 194 168)">ClanGen Light</option>
+              <option value="rgb(57 50 36)">ClanGen Dark</option>
+              <option value="rgb(39 45 79)">Starry Blue</option>
+              <option value="rgb(158 151 170)">Unknown Grey</option>
+              <option value="rgb(42 17 13)">Starless Red</option>
+              <option value="custom">Custom…</option>
+            </select>
+            <input
+              type="color"
+              class="bg-custom-colour hidden"
+              value="#7f7f7f"
+            />
+          </div>
+          <div class="form-row">
+            <label>Shading</label>
+            <input class="shading-checkbox" type="checkbox" />
+          </div>
+          <div class="form-row">
+            <label>Reverse</label>
+            <input class="reverse-checkbox" type="checkbox" />
+          </div>
+          <div class="button-column">
+            <button class="randomize-all-button" type="button">
+              🎲 Randomize
+            </button>
+            <button class="download-png-button" type="button">
+              Download PNG
+            </button>
+            <button class="copy-url-button" type="button">Copy this cat's URL</button>
+          </div>
+        </div>
+      </aside>
 
-    <form>
+      <form class="controls">
+      <section class="card">
+        <h2>Body &amp; Pelt</h2>
       <div class="form-row">
         <label>Sprite</label>
         <select class="sprite-no-select">
@@ -208,6 +282,10 @@
         <button class="random-button" data-select-id="colour-select">🔀</button>
       </div>
 
+      </section>
+
+      <section class="card">
+        <h2>Tortie</h2>
       <div class="form-row">
         <label>Tortie?</label>
         <input class="tortie-checkbox" type="checkbox" />
@@ -668,6 +746,10 @@
         </button>
       </div>
 
+      </section>
+
+      <section class="card">
+        <h2>Colours &amp; Eyes</h2>
       <div class="form-row">
         <label>Tint</label>
         <select class="tint-select">
@@ -1123,6 +1205,10 @@
         </button>
       </div>
 
+      </section>
+
+      <section class="card">
+        <h2>White Markings</h2>
       <div class="form-row">
         <label>White Patches</label>
         <select class="white-patches-select" multiple>
@@ -1498,6 +1584,10 @@
         </button>
       </div>
 
+      </section>
+
+      <section class="card">
+        <h2>Accessories &amp; Extras</h2>
       <div class="form-row">
         <label>Accessory</label>
         <select class="accessory-select" multiple>
@@ -2084,43 +2174,7 @@
           </option>
         </select>
       </div>
-
-      <div class="form-row">
-        <label>Shading</label>
-        <input class="shading-checkbox" type="checkbox" />
-      </div>
-
-      <div class="form-row">
-        <label>Reverse</label>
-        <input class="reverse-checkbox" type="checkbox" />
-      </div>
-
-      <div class="form-row">
-        <label>BG Colour</label>
-        <select class="bg-color-select">
-          <option value="rgb(0 0 0 / 0)">Transparent</option>
-          <option value="rgb(255 255 255)">White</option>
-          <option value="rgb(0 0 0)">Black</option>
-          <option value="rgb(0 255 0)">Lime Green</option>
-          <option value="rgb(206 194 168)">ClanGen Light</option>
-          <option value="rgb(57 50 36)">ClanGen Dark</option>
-          <option value="rgb(39 45 79)">Starry Blue</option>
-          <option value="rgb(158 151 170)">Unknown Grey</option>
-          <option value="rgb(42 17 13)">Starless Red</option>
-          <option value="custom">Custom…</option>
-        </select>
-        <input type="color" class="bg-custom-colour hidden" value="#7f7f7f" />
-      </div>
-
-      <div class="form-row">
-        <label>Scale</label>
-        <select class="zoom-level">
-          <option value="1">1x</option>
-          <option value="2">2x</option>
-          <option selected value="3">3x</option>
-          <option value="4">4x</option>
-        </select>
-      </div>
+      </section>
 
       <details class="adjust-details">
         <summary>Colour Adjustments (optional)</summary>
@@ -2213,29 +2267,22 @@
         </div>
       </details>
 
-      <div>
-        <button class="randomize-all-button">Randomize</button>
-      </div>
-      <div>
-        <button class="download-png-button">Download PNG</button>
-      </div>
-      <div>
-        <button class="copy-url-button">Copy this cat's URL</button>
-      </div>
-      <div>
-        <button class="import-json-button">Import JSON data</button>
-      </div>
-
-      <div class="sharecode-div form-row">
-        <label
-          >Appearance Data <br />
-          (does not contain all data; use only as reference)</label
-        >
+      <section class="card sharecode-div">
+        <h2>Appearance Data</h2>
+        <p class="section-note">
+          Does not contain all data; use only as reference.
+        </p>
         <textarea readonly rows="10" class="sharecode"></textarea>
-      </div>
-    </form>
+        <div>
+          <button class="import-json-button" type="button">
+            Import JSON data
+          </button>
+        </div>
+      </section>
+      </form>
+    </main>
 
-    <div>
+    <div class="info">
       <p>
         Sprites are by the ClanGen team and are licensed under
         <a href="https://creativecommons.org/licenses/by-nc/4.0/"

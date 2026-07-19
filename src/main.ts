@@ -537,6 +537,27 @@ importJSONButton.addEventListener("click", (e) => {
   }
 })
 
+// ---- theme toggle ----
+
+const themeToggle = getElementByUniqueClassName(
+  "theme-toggle",
+) as HTMLButtonElement;
+
+function applyTheme(theme: string) {
+  document.documentElement.dataset.theme = theme;
+  themeToggle.textContent = theme === "dark" ? "☀️" : "🌙";
+}
+
+themeToggle.addEventListener("click", () => {
+  const next =
+    document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+  localStorage.setItem("pcm-theme", next);
+  applyTheme(next);
+});
+
+// the pre-paint script in index.html already set the theme; sync the icon
+applyTheme(document.documentElement.dataset.theme ?? "light");
+
 // ---- colour adjustments ----
 
 function currentAdjustSlot(): AdjustSlot {
