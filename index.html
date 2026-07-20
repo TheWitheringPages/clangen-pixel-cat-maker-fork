@@ -2477,6 +2477,14 @@
 
       <details class="saved-cats-details">
         <summary>Saved Cats (stored in this browser)</summary>
+        <div class="form-row">
+          <label>Search</label>
+          <input
+            type="text"
+            class="saved-search-input"
+            placeholder="Filter saved cats by name"
+          />
+        </div>
         <div class="saved-thumbs cat-thumb-strip"></div>
         <div class="form-row">
           <label>Saved</label>
@@ -2486,6 +2494,15 @@
           <button class="save-cat-button">Save current cat</button>
           <button class="load-cat-button">Load</button>
           <button class="delete-cat-button">Delete</button>
+        </div>
+        <div>
+          <button class="rename-cat-button">Rename</button>
+          <button class="move-cat-up-button" title="Move up in the list">
+            ▲ Up
+          </button>
+          <button class="move-cat-down-button" title="Move down in the list">
+            ▼ Down
+          </button>
         </div>
 
         <label class="notes-label">

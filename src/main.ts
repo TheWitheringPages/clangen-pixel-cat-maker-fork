@@ -9,6 +9,12 @@ import { AdjustSlot } from "./library/types";
 import { initThemeToggle } from "./library/theme";
 import peltInfo from "./assets/peltInfo.json";
 import spriteGroups from "./assets/spriteGroups.json";
+import {
+  SAVED_CATS_KEY,
+  loadSavedCats,
+  renameSavedCat,
+  moveSavedCat,
+} from "./library/savedCats";
 
 function getElementByUniqueClassName(className: string): Element {
   return document.getElementsByClassName(className)[0];
@@ -1554,18 +1560,12 @@ getElementByUniqueClassName("compare-clear-button").addEventListener(
   },
 );
 
-// ---- saved cats (localStorage) ----
+// ---- saved cats (localStorage; shared helpers in library/savedCats) ----
 
-const SAVED_CATS_KEY = "pixel-cat-maker-saved-cats";
-
-function loadSavedCats(): { name: string; params: string; notes?: string }[] {
-  try {
-    const parsed = JSON.parse(localStorage.getItem(SAVED_CATS_KEY) ?? "[]");
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
+const savedSearchInput = getElementByUniqueClassName(
+  "saved-search-input",
+) as HTMLInputElement;
+var savedSearchTerm = "";
 
 function highlightSelectedSavedThumb() {
   const selected = savedCatsSelect.value;
@@ -1592,13 +1592,22 @@ function refreshSavedCatsList(selectIndex: number | null = null) {
 
   // thumbnail strip mirrors the select; clicking a thumb selects that cat
   savedThumbs.innerHTML = "";
+  const term = savedSearchTerm.trim().toLowerCase();
+  const shown = saved
+    .map((cat, i) => ({ cat, i }))
+    .filter(({ cat }) => term === "" || cat.name.toLowerCase().includes(term));
   if (saved.length === 0) {
     const empty = document.createElement("span");
     empty.className = "cat-thumb-empty";
     empty.textContent = "No saved cats yet.";
     savedThumbs.appendChild(empty);
+  } else if (shown.length === 0) {
+    const empty = document.createElement("span");
+    empty.className = "cat-thumb-empty";
+    empty.textContent = "No saved cats match your search.";
+    savedThumbs.appendChild(empty);
   } else {
-    saved.forEach((cat, i) => {
+    shown.forEach(({ cat, i }) => {
       const btn = makeThumbButton(cat.params, cat.name, cat.name);
       btn.dataset.index = i.toString();
       btn.addEventListener("click", (e) => {
@@ -1682,6 +1691,57 @@ getElementByUniqueClassName("delete-cat-button").addEventListener(
     refreshSavedCatsList();
   },
 );
+
+getElementByUniqueClassName("rename-cat-button").addEventListener(
+  "click",
+  (e) => {
+    e.preventDefault();
+    const index = Number(savedCatsSelect.value);
+    const saved = loadSavedCats();
+    if (!saved[index]) {
+      return;
+    }
+    const name = prompt("Rename this cat:", saved[index].name);
+    if (name === null || name.trim() === "") {
+      return;
+    }
+    renameSavedCat(index, name.trim());
+    refreshSavedCatsList(index);
+  },
+);
+
+function moveSelectedSavedCat(delta: number) {
+  const index = Number(savedCatsSelect.value);
+  const saved = loadSavedCats();
+  const target = index + delta;
+  if (!saved[index] || target < 0 || target >= saved.length) {
+    return;
+  }
+  moveSavedCat(index, target);
+  refreshSavedCatsList(target);
+}
+
+getElementByUniqueClassName("move-cat-up-button").addEventListener(
+  "click",
+  (e) => {
+    e.preventDefault();
+    moveSelectedSavedCat(-1);
+  },
+);
+getElementByUniqueClassName("move-cat-down-button").addEventListener(
+  "click",
+  (e) => {
+    e.preventDefault();
+    moveSelectedSavedCat(1);
+  },
+);
+
+savedSearchInput.addEventListener("input", () => {
+  savedSearchTerm = savedSearchInput.value;
+  refreshSavedCatsList(
+    savedCatsSelect.value === "" ? null : Number(savedCatsSelect.value),
+  );
+});
 
 // ---- gallery export / import ----
 

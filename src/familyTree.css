@@ -26,13 +26,50 @@
   font: inherit;
 }
 
-.tree-scroll {
-  overflow-x: auto;
+.tree-view-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 6px 0 10px;
+}
+
+.tree-zoom-slider {
+  width: 140px;
+}
+
+.tree-zoom-label {
+  min-width: 3em;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.tree-view-hint {
+  margin: 0;
+}
+
+.tree-viewport {
+  position: relative;
+  overflow: hidden;
+  height: 70vh;
+  min-height: 340px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  touch-action: none;
+  cursor: grab;
+}
+
+.tree-viewport.panning {
+  cursor: grabbing;
 }
 
 .tree-canvas-wrap {
-  position: relative;
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: 0 0;
   min-width: fit-content;
+  padding: 12px;
 }
 
 .tree-lines {
@@ -129,4 +166,68 @@
 
 .tree-node-panel select {
   width: 100%;
+}
+
+/* widen a node while its edit/breed panel is open so kits have room */
+.tree-node:has(.tree-node-panel) {
+  width: 260px;
+}
+
+.tree-kits {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.tree-kit {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  width: 116px;
+  padding: 4px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.tree-kit canvas {
+  width: 60px;
+  height: 60px;
+  image-rendering: pixelated;
+  background:
+    repeating-conic-gradient(
+      var(--checker-a) 0% 25%,
+      var(--checker-b) 0% 50%
+    )
+    0 0 / 16px 16px;
+  border-radius: 4px;
+}
+
+.tree-kit button {
+  width: 100%;
+  font-size: 0.7rem;
+  padding: 2px 4px;
+}
+
+/* lineage highlight: dim everything except the hovered cat's ancestors and
+   descendants and the lines that connect them */
+.tree-rows.lineage-active .tree-node {
+  opacity: 0.28;
+  transition: opacity 0.1s;
+}
+
+.tree-rows.lineage-active .tree-node.in-lineage {
+  opacity: 1;
+}
+
+.tree-lines.lineage-active line {
+  opacity: 0.12;
+}
+
+.tree-lines.lineage-active line.in-lineage {
+  opacity: 1;
+  stroke: var(--accent);
+  stroke-width: 3;
 }

@@ -8,6 +8,9 @@ initThemeToggle();
 import CatData from "./library/CatData";
 import drawCat from "./library/drawCat";
 import { Pelt } from "./library/types";
+import { loadSavedCats, addSavedCat } from "./library/savedCats";
+
+const indexBase = new URL("index.html", location.href).toString();
 
 // HTML Elements
 const parent1Div = document.getElementById("parent1");
@@ -94,38 +97,37 @@ parent2Div?.addEventListener("drop", (ev) => {
 });
 
 // saved cats from the cat maker can be picked as parents directly
-const SAVED_CATS_KEY = "pixel-cat-maker-saved-cats";
+const parentSelects = Array.from(
+  document.querySelectorAll<HTMLSelectElement>(".parent-saved-select"),
+);
 
-function loadSavedCats(): { name: string; params: string }[] {
-  try {
-    const parsed = JSON.parse(localStorage.getItem(SAVED_CATS_KEY) ?? "[]");
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
+// rebuild the saved-cat pickers from localStorage (kept fresh so cats saved
+// in the maker show up without a reload)
+function populateParentSelects() {
+  const savedCats = loadSavedCats();
+  for (const select of parentSelects) {
+    select.classList.toggle("hidden", savedCats.length === 0);
+    const current = select.value;
+    while (select.options.length > 1) {
+      select.remove(1);
+    }
+    savedCats.forEach((cat, i) => {
+      const option = document.createElement("option");
+      option.value = i.toString();
+      option.textContent = cat.name;
+      select.appendChild(option);
+    });
+    select.value = current;
   }
 }
 
-const savedCats = loadSavedCats();
-for (const select of Array.from(
-  document.querySelectorAll<HTMLSelectElement>(".parent-saved-select"),
-)) {
-  if (savedCats.length === 0) {
-    select.classList.add("hidden");
-    continue;
-  }
-  savedCats.forEach((cat, i) => {
-    const option = document.createElement("option");
-    option.value = i.toString();
-    option.textContent = cat.name;
-    select.appendChild(option);
-  });
+for (const select of parentSelects) {
   select.addEventListener("change", () => {
-    const entry = savedCats[Number(select.value)];
+    const entry = loadSavedCats()[Number(select.value)];
     if (select.value === "" || !entry) {
       return;
     }
-    const url =
-      new URL("index.html", location.href).toString() + entry.params;
+    const url = indexBase + entry.params;
     if (select.dataset.parent === "1") {
       parent1URLInput.value = url;
       refreshParent1(url);
@@ -136,68 +138,232 @@ for (const select of Array.from(
   });
 }
 
-regenerateButton.addEventListener("click", async () => {
-  const d = document.getElementById("offspring")!;
-  d.replaceChildren();
+populateParentSelects();
+window.addEventListener("focus", populateParentSelects);
 
-  const stringAmount = amountInput.value;
-  var numberAmount = Number(stringAmount);
-  const minAmount = Number(amountInput.min);
-  const maxAmount = Number(amountInput.max);
-
-  if (isNaN(numberAmount)) {
-    amountInput.value = "1";
-    numberAmount = 1;
+// swap the two parents
+const swapButton = document.getElementById(
+  "swap-parents-button",
+) as HTMLButtonElement;
+swapButton.addEventListener("click", () => {
+  const first = parent1URLInput.value;
+  parent1URLInput.value = parent2URLInput.value;
+  parent2URLInput.value = first;
+  if (parent1URLInput.value) {
+    refreshParent1(parent1URLInput.value);
   }
-  if (numberAmount < minAmount) {
-    amountInput.value = amountInput.min;
-    numberAmount = minAmount;
+  if (parent2URLInput.value) {
+    refreshParent2(parent2URLInput.value);
   }
-  if (numberAmount > maxAmount) {
-    amountInput.value = amountInput.max;
-    numberAmount = maxAmount;
-  }
+});
 
-  const variance = Number(varianceInput.value);
-  for (var i = 0; i < numberAmount; i++) {
-    const defaultKit = generateChildPelt(
-      [parent1Pelt, parent2Pelt],
-      Number.isFinite(variance) ? variance : 50,
-    );
-    const catData = CatData.fromPelt(defaultKit);
-    catData.spriteNumber = [0, 1, 2][Math.floor(Math.random() * 3)];
+// ---- pick parents from saved cats (thumbnails) ----
 
-    const link = document.createElement("a");
-    link.href = catData
-      .getURL(new URL("index.html", location.href).toString())
-      .toString();
-    link.target = "_blank";
-    link.className = "cat-link";
-    link.draggable = true;
-    link.addEventListener("dragstart", (ev) => {
-      ev.dataTransfer?.setData("text/plain", link.href);
-    });
+const parentThumbs = document.querySelector(".parent-thumbs") as HTMLElement;
 
-    const offscreenCanvas = new OffscreenCanvas(50, 50);
-
-    const can = document.createElement("canvas") as HTMLCanvasElement;
-    can.width = 100;
-    can.height = 100;
-    can.style.imageRendering = "pixelated";
-    const context = can.getContext("2d")!;
-    link.append(can);
-    d.appendChild(link);
-
-    drawCat(offscreenCanvas, catData.getPelt(), catData.spriteNumber)
+function drawThumb(canvas: HTMLCanvasElement, params: string) {
+  try {
+    const data = CatData.fromURL(indexBase + params);
+    const offscreen = new OffscreenCanvas(50, 50);
+    drawCat(offscreen, data.getPelt(), data.spriteNumber)
       .then(() => {
-        context.imageSmoothingEnabled = false;
-        context.scale(2, 2);
-        context.drawImage(offscreenCanvas, 0, 0);
+        const ctx = canvas.getContext("2d")!;
+        ctx.imageSmoothingEnabled = false;
+        ctx.clearRect(0, 0, 50, 50);
+        ctx.drawImage(offscreen, 0, 0);
       })
-      .catch((err) => {
-        console.error(err);
-      });
+      .catch((err) => console.error(err));
+  } catch (err) {
+    console.error(err);
   }
+}
+
+function renderParentThumbs() {
+  const saved = loadSavedCats();
+  parentThumbs.innerHTML = "";
+  if (saved.length === 0) {
+    const empty = document.createElement("span");
+    empty.className = "thumbs-empty";
+    empty.textContent =
+      "No saved cats yet. Save cats in the maker to pick them here.";
+    parentThumbs.appendChild(empty);
+    return;
+  }
+  for (const cat of saved) {
+    const card = document.createElement("div");
+    card.className = "parent-thumb";
+
+    const canvas = document.createElement("canvas");
+    canvas.width = 50;
+    canvas.height = 50;
+    canvas.className = "parent-thumb-canvas";
+    card.appendChild(canvas);
+    drawThumb(canvas, cat.params);
+
+    const name = document.createElement("div");
+    name.className = "parent-thumb-name";
+    name.textContent = cat.name;
+    card.appendChild(name);
+
+    const row = document.createElement("div");
+    row.className = "parent-thumb-buttons";
+    const toP1 = document.createElement("button");
+    toP1.type = "button";
+    toP1.textContent = "→ P1";
+    toP1.addEventListener("click", () => {
+      const url = indexBase + cat.params;
+      parent1URLInput.value = url;
+      refreshParent1(url);
+    });
+    const toP2 = document.createElement("button");
+    toP2.type = "button";
+    toP2.textContent = "→ P2";
+    toP2.addEventListener("click", () => {
+      const url = indexBase + cat.params;
+      parent2URLInput.value = url;
+      refreshParent2(url);
+    });
+    row.append(toP1, toP2);
+    card.appendChild(row);
+
+    parentThumbs.appendChild(card);
+  }
+}
+
+renderParentThumbs();
+window.addEventListener("focus", renderParentThumbs);
+
+// ---- litter generation (with pinning) ----
+
+const offspringDiv = document.getElementById("offspring")!;
+// kit params the user has pinned to survive the next re-roll
+var pinnedParams: string[] = [];
+
+function clampedAmount(): number {
+  var amount = Number(amountInput.value);
+  const min = Number(amountInput.min);
+  const max = Number(amountInput.max);
+  if (isNaN(amount)) {
+    amount = min;
+  }
+  amount = Math.min(max, Math.max(min, amount));
+  amountInput.value = amount.toString();
+  return amount;
+}
+
+function buildKitElement(
+  params: string,
+  index: number,
+): { el: HTMLElement; done: Promise<unknown> } {
+  const kit = document.createElement("div");
+  kit.className = "kit";
+
+  const link = document.createElement("a");
+  link.href = indexBase + params;
+  link.target = "_blank";
+  link.className = "cat-link";
+  link.draggable = true;
+  link.addEventListener("dragstart", (ev) => {
+    ev.dataTransfer?.setData("text/plain", link.href);
+  });
+
+  const can = document.createElement("canvas");
+  can.width = 100;
+  can.height = 100;
+  can.style.imageRendering = "pixelated";
+  link.append(can);
+  kit.appendChild(link);
+
+  const offscreen = new OffscreenCanvas(50, 50);
+  const done = drawCat(
+    offscreen,
+    CatData.fromURL(indexBase + params).getPelt(),
+    CatData.fromURL(indexBase + params).spriteNumber,
+  )
+    .then(() => {
+      const ctx = can.getContext("2d")!;
+      ctx.imageSmoothingEnabled = false;
+      ctx.scale(2, 2);
+      ctx.drawImage(offscreen, 0, 0);
+    })
+    .catch((err) => console.error(err));
+
+  const actions = document.createElement("div");
+  actions.className = "kit-actions";
+
+  const pinButton = document.createElement("button");
+  pinButton.type = "button";
+  pinButton.className = "kit-pin-button";
+  const syncPin = () => {
+    const pinned = pinnedParams.includes(params);
+    pinButton.textContent = pinned ? "📌 Pinned" : "📍 Pin";
+    pinButton.classList.toggle("pinned", pinned);
+  };
+  syncPin();
+  pinButton.addEventListener("click", () => {
+    if (pinnedParams.includes(params)) {
+      pinnedParams = pinnedParams.filter((p) => p !== params);
+    } else {
+      pinnedParams.push(params);
+    }
+    syncPin();
+  });
+  actions.appendChild(pinButton);
+
+  const saveButton = document.createElement("button");
+  saveButton.type = "button";
+  saveButton.className = "kit-save-button";
+  saveButton.textContent = "Save";
+  saveButton.addEventListener("click", () => {
+    const name = prompt("Name this kit:", `Kit ${index + 1}`);
+    if (name === null) {
+      return;
+    }
+    addSavedCat(name || `Kit ${index + 1}`, params);
+    saveButton.textContent = "Saved ✓";
+    saveButton.disabled = true;
+    populateParentSelects();
+    renderParentThumbs();
+  });
+  actions.appendChild(saveButton);
+
+  kit.appendChild(actions);
+  return { el: kit, done };
+}
+
+regenerateButton.addEventListener("click", async () => {
+  const amount = clampedAmount();
+  const variance = Number(varianceInput.value);
+  const v = Number.isFinite(variance) ? variance : 50;
+
+  // keep pinned kits (up to the requested amount), re-roll the rest
+  const keep = pinnedParams.slice(0, amount);
+  const fresh: string[] = [];
+  for (let i = keep.length; i < amount; i++) {
+    const kitData = CatData.fromPelt(
+      generateChildPelt([parent1Pelt, parent2Pelt], v),
+    );
+    kitData.spriteNumber = [0, 1, 2][Math.floor(Math.random() * 3)];
+    fresh.push(kitData.getURL(indexBase).search);
+  }
+  pinnedParams = keep;
+  const all = [...keep, ...fresh];
+
+  offspringDiv.replaceChildren();
+  const label = regenerateButton.textContent;
+  regenerateButton.disabled = true;
+  regenerateButton.textContent = "Generating…";
+
+  const draws: Promise<unknown>[] = [];
+  all.forEach((params, idx) => {
+    const { el, done } = buildKitElement(params, idx);
+    offspringDiv.appendChild(el);
+    draws.push(done);
+  });
+  await Promise.allSettled(draws);
+
+  regenerateButton.disabled = false;
+  regenerateButton.textContent = label;
 });
 
 // Startup code

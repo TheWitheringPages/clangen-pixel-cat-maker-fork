@@ -4,6 +4,8 @@ import "./familyTree.css";
 import { initThemeToggle } from "./library/theme";
 import CatData from "./library/CatData";
 import drawCat from "./library/drawCat";
+import { generateChildPelt } from "./library/inheritance";
+import { loadSavedCats, addSavedCat } from "./library/savedCats";
 
 initThemeToggle();
 
@@ -15,7 +17,7 @@ type TreeCat = {
 };
 
 const TREE_KEY = "pixel-cat-maker-family-tree";
-const SAVED_CATS_KEY = "pixel-cat-maker-saved-cats";
+const indexBase = new URL("index.html", location.href).toString();
 
 function loadTree(): TreeCat[] {
   try {
@@ -48,24 +50,25 @@ const urlInput = document.querySelector(
   ".tree-url-input",
 ) as HTMLInputElement;
 
-function loadSavedCats(): { name: string; params: string }[] {
-  try {
-    const parsed = JSON.parse(localStorage.getItem(SAVED_CATS_KEY) ?? "[]");
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
-
-{
+// rebuild the saved-cat picker from localStorage (kept fresh so cats saved
+// in the maker or predictor appear without a reload)
+function populateSavedSelect() {
   const saved = loadSavedCats();
+  const current = savedSelect.value;
+  while (savedSelect.options.length > 1) {
+    savedSelect.remove(1);
+  }
   saved.forEach((cat, i) => {
     const option = document.createElement("option");
     option.value = i.toString();
     option.textContent = cat.name;
     savedSelect.appendChild(option);
   });
+  savedSelect.value = current;
 }
+
+populateSavedSelect();
+window.addEventListener("focus", populateSavedSelect);
 
 function addCat(name: string, params: string) {
   tree.push({ id: makeId(), name, params, parents: [] });
@@ -208,9 +211,141 @@ document
 const rowsDiv = document.querySelector(".tree-rows") as HTMLElement;
 const linesSvg = document.querySelector(".tree-lines") as SVGSVGElement;
 const emptyNote = document.querySelector(".tree-empty-note") as HTMLElement;
+const viewport = document.querySelector(".tree-viewport") as HTMLElement;
+const wrap = document.querySelector(".tree-canvas-wrap") as HTMLElement;
+const zoomSlider = document.querySelector(
+  ".tree-zoom-slider",
+) as HTMLInputElement;
+const zoomLabel = document.querySelector(".tree-zoom-label") as HTMLElement;
 
 function catById(id: string) {
   return tree.find((c) => c.id === id);
+}
+
+// ---- viewport zoom & pan ----
+
+const TREE_MIN_ZOOM = 0.3;
+const TREE_MAX_ZOOM = 2;
+var treeZoom = 1;
+var treePanX = 0;
+var treePanY = 0;
+
+function applyTreeTransform() {
+  wrap.style.transform = `translate(${treePanX}px, ${treePanY}px) scale(${treeZoom})`;
+  zoomLabel.textContent = `${Math.round(treeZoom * 100)}%`;
+  zoomSlider.value = treeZoom.toString();
+}
+
+// The SVG and rows share the wrap, so they scale/translate together — lines
+// stay glued to nodes during zoom/pan with no redraw needed.
+function zoomTreeAround(px: number, py: number, newZoom: number) {
+  newZoom = Math.min(TREE_MAX_ZOOM, Math.max(TREE_MIN_ZOOM, newZoom));
+  const cx = (px - treePanX) / treeZoom;
+  const cy = (py - treePanY) / treeZoom;
+  treePanX = px - cx * newZoom;
+  treePanY = py - cy * newZoom;
+  treeZoom = newZoom;
+  applyTreeTransform();
+}
+
+zoomSlider.addEventListener("input", () => {
+  const rect = viewport.getBoundingClientRect();
+  zoomTreeAround(rect.width / 2, rect.height / 2, Number(zoomSlider.value));
+});
+
+document
+  .querySelector(".tree-reset-view-button")!
+  .addEventListener("click", () => {
+    treeZoom = 1;
+    treePanX = 0;
+    treePanY = 0;
+    applyTreeTransform();
+  });
+
+viewport.addEventListener(
+  "wheel",
+  (ev) => {
+    ev.preventDefault();
+    const rect = viewport.getBoundingClientRect();
+    const factor = ev.deltaY < 0 ? 1.1 : 1 / 1.1;
+    zoomTreeAround(ev.clientX - rect.left, ev.clientY - rect.top, treeZoom * factor);
+  },
+  { passive: false },
+);
+
+var panning = false;
+var panStartX = 0;
+var panStartY = 0;
+viewport.addEventListener("pointerdown", (ev) => {
+  // let clicks on nodes/buttons work; only pan from empty space
+  if ((ev.target as HTMLElement).closest(".tree-node")) {
+    return;
+  }
+  panning = true;
+  panStartX = ev.clientX;
+  panStartY = ev.clientY;
+  viewport.classList.add("panning");
+  viewport.setPointerCapture(ev.pointerId);
+});
+viewport.addEventListener("pointermove", (ev) => {
+  if (!panning) {
+    return;
+  }
+  treePanX += ev.clientX - panStartX;
+  treePanY += ev.clientY - panStartY;
+  panStartX = ev.clientX;
+  panStartY = ev.clientY;
+  applyTreeTransform();
+});
+function endPan() {
+  panning = false;
+  viewport.classList.remove("panning");
+}
+viewport.addEventListener("pointerup", endPan);
+viewport.addEventListener("pointercancel", endPan);
+
+// ---- lineage highlight ----
+
+function ancestorsOf(id: string, acc: Set<string>) {
+  const cat = catById(id);
+  for (const p of cat?.parents ?? []) {
+    if (catById(p) && !acc.has(p)) {
+      acc.add(p);
+      ancestorsOf(p, acc);
+    }
+  }
+}
+
+function descendantsOf(id: string, acc: Set<string>) {
+  for (const c of tree) {
+    if (c.parents.includes(id) && !acc.has(c.id)) {
+      acc.add(c.id);
+      descendantsOf(c.id, acc);
+    }
+  }
+}
+
+function highlightLineage(id: string) {
+  const set = new Set<string>([id]);
+  ancestorsOf(id, set);
+  descendantsOf(id, set);
+
+  rowsDiv.classList.add("lineage-active");
+  linesSvg.classList.add("lineage-active");
+  for (const node of Array.from(rowsDiv.querySelectorAll(".tree-node"))) {
+    const nid = (node as HTMLElement).dataset.id ?? "";
+    node.classList.toggle("in-lineage", set.has(nid));
+  }
+  for (const line of Array.from(linesSvg.querySelectorAll("line"))) {
+    const child = (line as SVGLineElement).dataset.child ?? "";
+    const parent = (line as SVGLineElement).dataset.parent ?? "";
+    line.classList.toggle("in-lineage", set.has(child) && set.has(parent));
+  }
+}
+
+function clearLineage() {
+  rowsDiv.classList.remove("lineage-active");
+  linesSvg.classList.remove("lineage-active");
 }
 
 // generation = 1 + deepest parent generation; cycle-safe
@@ -241,12 +376,11 @@ function generations(): Map<string, number> {
 }
 
 function catURLFor(cat: TreeCat) {
-  return `${new URL("index.html", location.href).toString()}${cat.params}`;
+  return `${indexBase}${cat.params}`;
 }
 
-async function drawNodeCanvas(canvas: HTMLCanvasElement, cat: TreeCat) {
+async function drawCatDataCanvas(canvas: HTMLCanvasElement, data: CatData) {
   try {
-    const data = CatData.fromURL(catURLFor(cat));
     const offscreen = new OffscreenCanvas(50, 50);
     await drawCat(offscreen, data.getPelt(), data.spriteNumber);
     const ctx = canvas.getContext("2d")!;
@@ -255,6 +389,79 @@ async function drawNodeCanvas(canvas: HTMLCanvasElement, cat: TreeCat) {
     ctx.drawImage(offscreen, 0, 0, 50, 50, 0, 0, canvas.width, canvas.height);
   } catch (err) {
     console.error(err);
+  }
+}
+
+function drawNodeCanvas(canvas: HTMLCanvasElement, cat: TreeCat) {
+  try {
+    drawCatDataCanvas(canvas, CatData.fromURL(catURLFor(cat)));
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+// breed two tree cats and render pickable kits; each can be added straight
+// into the tree as their child or saved to the gallery
+function renderKits(container: HTMLElement, catA: TreeCat, catB: TreeCat) {
+  container.innerHTML = "";
+  let aPelt, bPelt;
+  try {
+    aPelt = CatData.fromURL(catURLFor(catA)).getPelt();
+    bPelt = CatData.fromURL(catURLFor(catB)).getPelt();
+  } catch (err) {
+    console.error(err);
+    return;
+  }
+
+  for (let i = 0; i < 4; i++) {
+    const kitData = CatData.fromPelt(generateChildPelt([aPelt, bPelt], 50));
+    kitData.spriteNumber = [0, 1, 2][Math.floor(Math.random() * 3)];
+    const kitParams = kitData.getURL(indexBase).search;
+
+    const kitEl = document.createElement("div");
+    kitEl.className = "tree-kit";
+
+    const canvas = document.createElement("canvas");
+    canvas.width = 50;
+    canvas.height = 50;
+    kitEl.appendChild(canvas);
+    drawCatDataCanvas(canvas, kitData);
+
+    const addButton = document.createElement("button");
+    addButton.type = "button";
+    addButton.textContent = "Add to tree";
+    addButton.addEventListener("click", () => {
+      const name = prompt("Name this kit:", "Unnamed");
+      if (name === null) {
+        return;
+      }
+      tree.push({
+        id: makeId(),
+        name: name || "Unnamed",
+        params: kitParams,
+        parents: [catA.id, catB.id],
+      });
+      saveTree();
+      renderTree();
+    });
+    kitEl.appendChild(addButton);
+
+    const saveButton = document.createElement("button");
+    saveButton.type = "button";
+    saveButton.textContent = "Save to gallery";
+    saveButton.addEventListener("click", () => {
+      const name = prompt("Name this kit:", "Unnamed");
+      if (name === null) {
+        return;
+      }
+      addSavedCat(name || "Unnamed", kitParams);
+      saveButton.textContent = "Saved ✓";
+      saveButton.disabled = true;
+      populateSavedSelect();
+    });
+    kitEl.appendChild(saveButton);
+
+    container.appendChild(kitEl);
   }
 }
 
@@ -283,6 +490,8 @@ function buildNode(cat: TreeCat): HTMLElement {
   const node = document.createElement("div");
   node.className = "tree-node";
   node.dataset.id = cat.id;
+  node.addEventListener("mouseenter", () => highlightLineage(cat.id));
+  node.addEventListener("mouseleave", clearLineage);
 
   const canvas = document.createElement("canvas");
   canvas.width = 50;
@@ -345,6 +554,25 @@ function buildNode(cat: TreeCat): HTMLElement {
     const panel = document.createElement("div");
     panel.className = "tree-node-panel";
 
+    const nameLabel = document.createElement("label");
+    nameLabel.textContent = "Name";
+    const nameInput = document.createElement("input");
+    nameInput.type = "text";
+    nameInput.value = cat.name;
+    const rename = document.createElement("button");
+    rename.type = "button";
+    rename.textContent = "Rename";
+    rename.addEventListener("click", () => {
+      const value = nameInput.value.trim();
+      if (value === "") {
+        return;
+      }
+      cat.name = value;
+      saveTree();
+      populateSavedSelect();
+      renderTree();
+    });
+
     const p1Label = document.createElement("label");
     p1Label.textContent = "Parent 1";
     const p1 = otherCatsSelect(cat, cat.parents[0]);
@@ -363,11 +591,26 @@ function buildNode(cat: TreeCat): HTMLElement {
     });
 
     const predictLabel = document.createElement("label");
-    predictLabel.textContent = "Predict offspring with";
+    predictLabel.textContent = "Breed with";
     const partner = otherCatsSelect(cat, undefined);
+
+    const kitsDiv = document.createElement("div");
+    kitsDiv.className = "tree-kits";
+
+    const generate = document.createElement("button");
+    generate.type = "button";
+    generate.textContent = "Generate kits";
+    generate.addEventListener("click", () => {
+      const other = catById(partner.value);
+      if (!other) {
+        return;
+      }
+      renderKits(kitsDiv, cat, other);
+    });
+
     const predict = document.createElement("button");
     predict.type = "button";
-    predict.textContent = "Open predictor";
+    predict.textContent = "Open in predictor";
     predict.addEventListener("click", () => {
       const other = catById(partner.value);
       if (!other) {
@@ -382,6 +625,9 @@ function buildNode(cat: TreeCat): HTMLElement {
     });
 
     panel.append(
+      nameLabel,
+      nameInput,
+      rename,
       p1Label,
       p1,
       p2Label,
@@ -389,12 +635,69 @@ function buildNode(cat: TreeCat): HTMLElement {
       apply,
       predictLabel,
       partner,
+      generate,
       predict,
+      kitsDiv,
     );
     node.appendChild(panel);
   }
 
   return node;
+}
+
+// Order each generation so children sit near their parents (and parents near
+// their children), which keeps the connecting lines short and reduces
+// crossings. Barycenter heuristic with a few up/down sweeps.
+function orderedRows(
+  gens: Map<string, number>,
+  maxGen: number,
+): string[][] {
+  const rows: string[][] = [];
+  for (let g = 0; g <= maxGen; g++) {
+    rows[g] = tree.filter((c) => gens.get(c.id) === g).map((c) => c.id);
+  }
+
+  const childrenOf = new Map<string, string[]>();
+  for (const cat of tree) {
+    for (const p of cat.parents) {
+      if (catById(p)) {
+        (childrenOf.get(p) ?? childrenOf.set(p, []).get(p)!).push(cat.id);
+      }
+    }
+  }
+
+  const sortByBary = (
+    row: string[],
+    neighbourPos: Map<string, number>,
+    neighboursOf: (id: string) => string[],
+  ) => {
+    const current = new Map(row.map((id, i) => [id, i]));
+    row.sort((a, b) => {
+      const bary = (id: string) => {
+        const ns = neighboursOf(id)
+          .map((n) => neighbourPos.get(n))
+          .filter((v): v is number => v !== undefined);
+        return ns.length === 0
+          ? current.get(id)!
+          : ns.reduce((s, v) => s + v, 0) / ns.length;
+      };
+      return bary(a) - bary(b);
+    });
+  };
+
+  for (let iter = 0; iter < 4; iter++) {
+    for (let g = 1; g <= maxGen; g++) {
+      const above = new Map(rows[g - 1].map((id, i) => [id, i]));
+      sortByBary(rows[g], above, (id) =>
+        (catById(id)?.parents ?? []).filter((p) => catById(p)),
+      );
+    }
+    for (let g = maxGen - 1; g >= 0; g--) {
+      const below = new Map(rows[g + 1].map((id, i) => [id, i]));
+      sortByBary(rows[g], below, (id) => childrenOf.get(id) ?? []);
+    }
+  }
+  return rows;
 }
 
 function renderTree() {
@@ -403,26 +706,31 @@ function renderTree() {
 
   const gens = generations();
   const maxGen = Math.max(0, ...gens.values());
+  const rows = orderedRows(gens, maxGen);
 
   for (let g = 0; g <= maxGen; g++) {
+    if (rows[g].length === 0) {
+      continue;
+    }
     const row = document.createElement("div");
     row.className = "tree-row";
-    for (const cat of tree) {
-      if (gens.get(cat.id) === g) {
+    for (const id of rows[g]) {
+      const cat = catById(id);
+      if (cat) {
         row.appendChild(buildNode(cat));
       }
     }
-    if (row.children.length > 0) {
-      rowsDiv.appendChild(row);
-    }
+    rowsDiv.appendChild(row);
   }
 
   requestAnimationFrame(drawLines);
 }
 
 function drawLines() {
-  const wrap = document.querySelector(".tree-canvas-wrap") as HTMLElement;
   const wrapRect = wrap.getBoundingClientRect();
+  // coordinates in the wrap's own (un-scaled) layout space, so the SVG scales
+  // together with the nodes under the shared transform
+  const z = treeZoom;
   linesSvg.setAttribute("width", wrap.scrollWidth.toString());
   linesSvg.setAttribute("height", wrap.scrollHeight.toString());
   linesSvg.innerHTML = "";
@@ -443,16 +751,18 @@ function drawLines() {
         "http://www.w3.org/2000/svg",
         "line",
       );
+      line.dataset.child = cat.id;
+      line.dataset.parent = parentId;
       line.setAttribute(
         "x1",
-        (parentRect.left + parentRect.width / 2 - wrapRect.left).toString(),
+        ((parentRect.left + parentRect.width / 2 - wrapRect.left) / z).toString(),
       );
-      line.setAttribute("y1", (parentRect.bottom - wrapRect.top).toString());
+      line.setAttribute("y1", ((parentRect.bottom - wrapRect.top) / z).toString());
       line.setAttribute(
         "x2",
-        (childRect.left + childRect.width / 2 - wrapRect.left).toString(),
+        ((childRect.left + childRect.width / 2 - wrapRect.left) / z).toString(),
       );
-      line.setAttribute("y2", (childRect.top - wrapRect.top).toString());
+      line.setAttribute("y2", ((childRect.top - wrapRect.top) / z).toString());
       linesSvg.appendChild(line);
     }
   }
