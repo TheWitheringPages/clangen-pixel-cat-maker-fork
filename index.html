@@ -2416,6 +2416,7 @@
           <select class="paint-tool-select">
             <option value="draw">Draw</option>
             <option value="erase">Erase</option>
+            <option value="fill">Fill (bucket)</option>
             <option value="pick">Eyedropper</option>
           </select>
         </div>
@@ -2423,16 +2424,51 @@
           <label>Colour</label>
           <input type="color" class="paint-colour" value="#000000" />
         </div>
+        <div class="form-row paint-recent-colours-row">
+          <label>Recent</label>
+          <div class="paint-recent-colours"></div>
+        </div>
+        <div class="form-row">
+          <label title="Draw mirrored across the cat's centre line"
+            >Mirror (symmetry)</label
+          >
+          <input type="checkbox" class="paint-symmetry-checkbox" />
+        </div>
         <div class="form-row">
           <label>Pixel grid</label>
           <input type="checkbox" class="paint-grid-checkbox" />
         </div>
-        <canvas
-          class="paint-canvas"
-          width="400"
-          height="400"
-          style="image-rendering: pixelated"
-        ></canvas>
+        <p class="section-note paint-tools-hint">
+          Tip: hold <kbd>Shift</kbd> and click to draw a straight line from your
+          last pixel.
+        </p>
+        <div class="paint-viewport">
+          <canvas
+            class="paint-canvas"
+            width="400"
+            height="400"
+            style="image-rendering: pixelated"
+          ></canvas>
+        </div>
+        <div class="form-row paint-view-controls">
+          <label>Zoom</label>
+          <input
+            type="range"
+            class="paint-zoom-slider"
+            min="1"
+            max="8"
+            step="0.1"
+            value="1"
+          />
+          <span class="paint-zoom-label">1.0×</span>
+          <button class="paint-reset-view-button" type="button">
+            Reset view
+          </button>
+        </div>
+        <p class="section-note paint-controls-hint">
+          Scroll to zoom · right-drag to pan · pinch &amp; two-finger drag on
+          touch
+        </p>
         <div>
           <button class="paint-undo-button" disabled>↩ Undo</button>
           <button class="paint-clear-button">Clear painted pixels</button>
@@ -2441,6 +2477,7 @@
 
       <details class="saved-cats-details">
         <summary>Saved Cats (stored in this browser)</summary>
+        <div class="saved-thumbs cat-thumb-strip"></div>
         <div class="form-row">
           <label>Saved</label>
           <select class="saved-cats-select"></select>
@@ -2464,13 +2501,12 @@
           <button class="save-notes-button">Save notes</button>
         </div>
 
-        <div class="form-row recent-row">
+        <div class="recent-row">
           <label
             title="The last few designs you paused on, kept automatically"
             >Recent designs</label
           >
-          <select class="recent-cats-select"></select>
-          <button class="load-recent-button" type="button">Load</button>
+          <div class="recent-thumbs cat-thumb-strip"></div>
         </div>
 
         <p class="section-note">

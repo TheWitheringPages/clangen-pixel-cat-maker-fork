@@ -134,10 +134,20 @@ const paintColourInput = getElementByUniqueClassName(
 const paintCanvas = getElementByUniqueClassName(
   "paint-canvas",
 ) as HTMLCanvasElement;
+const paintViewport = getElementByUniqueClassName(
+  "paint-viewport",
+) as HTMLElement;
+const paintZoomSlider = getElementByUniqueClassName(
+  "paint-zoom-slider",
+) as HTMLInputElement;
+const paintZoomLabel = getElementByUniqueClassName(
+  "paint-zoom-label",
+) as HTMLElement;
 
 const savedCatsSelect = getElementByUniqueClassName(
   "saved-cats-select",
 ) as HTMLSelectElement;
+const savedThumbs = getElementByUniqueClassName("saved-thumbs");
 
 // last fully rendered 50x50 cat (post-reverse, incl. paint),
 // used by the paint editor and the PNG download
@@ -201,6 +211,8 @@ function setFormFromObject(data: CatData) {
   // a different cat was loaded; its paint history no longer applies
   paintUndoStack = [];
   paintUndoButton.disabled = true;
+  // don't let a shift-click line anchor to the previous cat's last pixel
+  lastPaintCell = null;
 }
 
 function getDataURL() {
@@ -501,9 +513,48 @@ function redrawCat(applyURL: boolean = true) {
     });
 }
 
-function randomizeSelected(select: HTMLSelectElement) {
-  const options: HTMLOptionsCollection = select.options;
-  options.selectedIndex = Math.floor(options.length * Math.random());
+// Pick a random option, but only from ones that are actually valid for the
+// current pose/pelt (not hidden/disabled by the compatibility filter). An
+// optional `allow` predicate narrows the pool further. Returns false if no
+// option qualified.
+function randomizeSelected(
+  select: HTMLSelectElement,
+  allow?: (value: string) => boolean,
+): boolean {
+  const candidates = Array.from(select.options).filter(
+    (o) => !o.disabled && !o.hidden && (allow === undefined || allow(o.value)),
+  );
+  if (candidates.length === 0) {
+    return false;
+  }
+  const choice = candidates[Math.floor(Math.random() * candidates.length)];
+  select.value = choice.value;
+  return true;
+}
+
+// does a pelt pattern have a sprite for this colour at the current pose?
+function peltSupportsColour(peltName: string, colour: string): boolean {
+  const pose = Number(spriteNumberSelect.value);
+  const groups = pose >= 21 ? NEWPOSE_GROUPS : ALL_GROUPS;
+  return groups.has(`${spritesNameOf(peltName)}${colour}`);
+}
+
+// choose 1-2 distinct valid white patches
+function randomizeWhitePatches(select: HTMLSelectElement) {
+  for (const o of Array.from(select.options)) {
+    o.selected = false;
+  }
+  const valid = Array.from(select.options).filter(
+    (o) => o.value !== "" && !o.disabled && !o.hidden,
+  );
+  if (valid.length === 0) {
+    return;
+  }
+  const count = Math.min(valid.length, Math.floor(Math.random() * 2) + 1);
+  const shuffled = valid.slice().sort(() => Math.random() - 0.5);
+  for (let i = 0; i < count; i++) {
+    shuffled[i].selected = true;
+  }
 }
 
 const randomButtons = document.getElementsByClassName(
@@ -517,18 +568,20 @@ for (const randomButton of randomButtons) {
       return;
     }
     const select = getElementByUniqueClassName(selectId) as HTMLSelectElement;
-    if (selectId == "white-patches-select") {
-      for (let i = 0; i < select.options.length; i++) select.options[i].selected = false;
-      const validOptions = Array.from(select.options).filter(opt => opt.value !== "");
-      const countToSelect = Math.floor(Math.random() * 2) +1;
-      for (let i = 0; i < countToSelect; i++) {
-        const randomIndex = Math.floor(Math.random() * validOptions.length);
-        validOptions[randomIndex].selected = true;
+    if (selectId === "white-patches-select") {
+      randomizeWhitePatches(select);
+    } else if (selectId === "pelt-name-select") {
+      // randomizing the pattern shouldn't disturb the colour: pick a pattern
+      // that still supports the current colour, falling back to any pattern
+      const colour = colourSelect.value;
+      if (
+        !randomizeSelected(select, (pelt) => peltSupportsColour(pelt, colour))
+      ) {
+        randomizeSelected(select);
       }
     } else {
       randomizeSelected(select);
     }
-    randomizeSelected(select);
     redrawCat();
   });
 }
@@ -572,7 +625,14 @@ getElementByUniqueClassName("randomize-all-button")?.addEventListener(
 
     randomizeSelected(spriteNumberSelect);
     randomizeSelected(peltNameSelect);
-    randomizeSelected(colourSelect);
+    // pick a colour the freshly chosen pattern actually has
+    if (
+      !randomizeSelected(colourSelect, (c) =>
+        peltSupportsColour(peltNameSelect.value, c),
+      )
+    ) {
+      randomizeSelected(colourSelect);
+    }
     randomizeSelected(tortiePatternSelect);
     randomizeSelected(tortieColourSelect);
     randomizeSelected(tortieMaskSelect);
@@ -807,48 +867,276 @@ function componentToHex(value: number) {
   return value.toString(16).padStart(2, "0");
 }
 
-function paintAt(ev: PointerEvent) {
+// map a displayed cell x to the stored (pre-reverse) key, so paint flips
+// together with the cat
+function paintKey(px: number, py: number): string {
+  const sx = catData.reverse ? 49 - px : px;
+  return `${sx},${py}`;
+}
+
+const symmetryCheckbox = getElementByUniqueClassName(
+  "paint-symmetry-checkbox",
+) as HTMLInputElement;
+
+// last displayed cell drawn, used as the anchor for shift-click straight lines
+var lastPaintCell: { x: number; y: number } | null = null;
+
+/** Draw or erase a single displayed cell. Returns whether anything changed. */
+function applyPaintCell(px: number, py: number, erase: boolean): boolean {
+  if (px < 0 || px >= 50 || py < 0 || py >= 50) {
+    return false;
+  }
+  const key = paintKey(px, py);
+  if (erase) {
+    if (!(key in catData.paint)) {
+      return false;
+    }
+    delete catData.paint[key];
+    return true;
+  }
+  if (catData.paint[key] === paintColourInput.value) {
+    return false;
+  }
+  catData.paint[key] = paintColourInput.value;
+  return true;
+}
+
+/** Apply draw/erase to a cell plus its mirror when symmetry is on. */
+function applyToolAtCell(px: number, py: number, erase: boolean): boolean {
+  let changed = applyPaintCell(px, py, erase);
+  if (symmetryCheckbox.checked) {
+    changed = applyPaintCell(49 - px, py, erase) || changed;
+  }
+  return changed;
+}
+
+/** Bresenham line of cells between two displayed cells. */
+function paintLine(
+  from: { x: number; y: number },
+  to: { x: number; y: number },
+  erase: boolean,
+): boolean {
+  let x0 = from.x;
+  let y0 = from.y;
+  const dx = Math.abs(to.x - x0);
+  const dy = -Math.abs(to.y - y0);
+  const sx = x0 < to.x ? 1 : -1;
+  const sy = y0 < to.y ? 1 : -1;
+  let err = dx + dy;
+  let changed = false;
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    changed = applyToolAtCell(x0, y0, erase) || changed;
+    if (x0 === to.x && y0 === to.y) {
+      break;
+    }
+    const e2 = 2 * err;
+    if (e2 >= dy) {
+      err += dy;
+      x0 += sx;
+    }
+    if (e2 <= dx) {
+      err += dx;
+      y0 += sy;
+    }
+  }
+  return changed;
+}
+
+// visible colour at a displayed cell: painted colour if any, else the
+// rendered cat pixel, as [r,g,b,a] (a=0 means transparent/empty)
+function visibleColourAt(px: number, py: number): [number, number, number, number] {
+  const key = paintKey(px, py);
+  const painted = catData.paint[key];
+  if (painted !== undefined) {
+    const r = parseInt(painted.slice(1, 3), 16);
+    const g = parseInt(painted.slice(3, 5), 16);
+    const b = parseInt(painted.slice(5, 7), 16);
+    return [r, g, b, 255];
+  }
+  if (lastRenderedCat !== null) {
+    const d = lastRenderedCat.getContext("2d")!.getImageData(px, py, 1, 1).data;
+    return [d[0], d[1], d[2], d[3]];
+  }
+  return [0, 0, 0, 0];
+}
+
+const FILL_TOLERANCE = 40;
+function colourMatches(
+  a: [number, number, number, number],
+  b: [number, number, number, number],
+): boolean {
+  // both transparent counts as a match; otherwise compare within tolerance
+  if (a[3] === 0 || b[3] === 0) {
+    return a[3] === b[3];
+  }
+  return (
+    Math.abs(a[0] - b[0]) <= FILL_TOLERANCE &&
+    Math.abs(a[1] - b[1]) <= FILL_TOLERANCE &&
+    Math.abs(a[2] - b[2]) <= FILL_TOLERANCE
+  );
+}
+
+/** Flood fill the contiguous region matching the clicked cell's colour. */
+function floodFill(startX: number, startY: number): boolean {
+  const target = visibleColourAt(startX, startY);
+  const fill = paintColourInput.value;
+  const seen = new Set<number>();
+  const stack: [number, number][] = [[startX, startY]];
+  let changed = false;
+  while (stack.length > 0) {
+    const [x, y] = stack.pop()!;
+    if (x < 0 || x >= 50 || y < 0 || y >= 50) {
+      continue;
+    }
+    const id = y * 50 + x;
+    if (seen.has(id)) {
+      continue;
+    }
+    seen.add(id);
+    if (!colourMatches(visibleColourAt(x, y), target)) {
+      continue;
+    }
+    const key = paintKey(x, y);
+    if (catData.paint[key] !== fill) {
+      catData.paint[key] = fill;
+      changed = true;
+    }
+    stack.push([x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]);
+  }
+  return changed;
+}
+
+function displayedCellOf(ev: PointerEvent): { px: number; py: number } {
   const rect = paintCanvas.getBoundingClientRect();
-  const px = Math.floor(((ev.clientX - rect.left) / rect.width) * 50);
-  const py = Math.floor(((ev.clientY - rect.top) / rect.height) * 50);
+  return {
+    px: Math.floor(((ev.clientX - rect.left) / rect.width) * 50),
+    py: Math.floor(((ev.clientY - rect.top) / rect.height) * 50),
+  };
+}
+
+function paintAt(ev: PointerEvent, isStart = false) {
+  const { px, py } = displayedCellOf(ev);
   if (px < 0 || px >= 50 || py < 0 || py >= 50) {
     return;
   }
 
-  // the paint layer is stored pre-reverse so it flips with the cat;
-  // the editor shows the final view, so unmap the x coordinate
-  const sx = catData.reverse ? 49 - px : px;
-  const key = `${sx},${py}`;
-
   const tool = paintToolSelect.value;
-  if (tool === "draw") {
-    if (catData.paint[key] === paintColourInput.value) {
-      return;
-    }
-    catData.paint[key] = paintColourInput.value;
-  } else if (tool === "erase") {
-    if (!(key in catData.paint)) {
-      return;
-    }
-    delete catData.paint[key];
-  } else {
+
+  if (tool === "pick") {
     // eyedropper reads from the rendered cat (displayed coordinates)
     if (lastRenderedCat !== null) {
       const data = lastRenderedCat
         .getContext("2d")!
         .getImageData(px, py, 1, 1).data;
       if (data[3] > 0) {
-        paintColourInput.value = `#${componentToHex(data[0])}${componentToHex(
+        const hex = `#${componentToHex(data[0])}${componentToHex(
           data[1],
         )}${componentToHex(data[2])}`;
+        paintColourInput.value = hex;
+        rememberPaintColour(hex);
         paintToolSelect.value = "draw";
       }
     }
     return;
   }
 
-  redrawCat(false);
+  if (tool === "fill") {
+    if (!isStart) {
+      return; // fill only on the initial click, not while dragging
+    }
+    let changed = floodFill(px, py);
+    if (symmetryCheckbox.checked) {
+      changed = floodFill(49 - px, py) || changed;
+    }
+    lastPaintCell = { x: px, y: py };
+    if (changed) {
+      rememberPaintColour(paintColourInput.value);
+      redrawCat(false);
+    }
+    return;
+  }
+
+  const erase = tool === "erase";
+
+  // shift-click from the last pixel draws a straight line
+  if (isStart && ev.shiftKey && lastPaintCell !== null) {
+    const changed = paintLine(lastPaintCell, { x: px, y: py }, erase);
+    lastPaintCell = { x: px, y: py };
+    if (changed) {
+      if (!erase) {
+        rememberPaintColour(paintColourInput.value);
+      }
+      redrawCat(false);
+    }
+    return;
+  }
+
+  const changed = applyToolAtCell(px, py, erase);
+  lastPaintCell = { x: px, y: py };
+  if (changed) {
+    if (!erase) {
+      rememberPaintColour(paintColourInput.value);
+    }
+    redrawCat(false);
+  }
 }
+
+// ---- recent paint colours ----
+
+const RECENT_COLOURS_KEY = "pixel-cat-maker-recent-colours";
+const MAX_RECENT_COLOURS = 8;
+const recentColoursContainer = getElementByUniqueClassName(
+  "paint-recent-colours",
+);
+
+function loadRecentColours(): string[] {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(RECENT_COLOURS_KEY) ?? "[]");
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function renderRecentColours() {
+  const colours = loadRecentColours();
+  recentColoursContainer.innerHTML = "";
+  if (colours.length === 0) {
+    const hint = document.createElement("span");
+    hint.className = "paint-recent-empty";
+    hint.textContent = "—";
+    recentColoursContainer.appendChild(hint);
+    return;
+  }
+  for (const colour of colours) {
+    const swatch = document.createElement("button");
+    swatch.type = "button";
+    swatch.className = "paint-swatch";
+    swatch.style.backgroundColor = colour;
+    swatch.title = colour;
+    swatch.addEventListener("click", (e) => {
+      e.preventDefault();
+      paintColourInput.value = colour;
+    });
+    recentColoursContainer.appendChild(swatch);
+  }
+}
+
+function rememberPaintColour(colour: string) {
+  const normalised = colour.toLowerCase();
+  const colours = loadRecentColours().filter(
+    (c) => c.toLowerCase() !== normalised,
+  );
+  colours.unshift(normalised);
+  localStorage.setItem(
+    RECENT_COLOURS_KEY,
+    JSON.stringify(colours.slice(0, MAX_RECENT_COLOURS)),
+  );
+  renderRecentColours();
+}
+
+renderRecentColours();
 
 // ---- paint undo (one entry per stroke / clear) ----
 
@@ -897,34 +1185,242 @@ document.addEventListener("keydown", (e) => {
   }
 });
 
+// ---- paint canvas zoom & pan ----
+//
+// The canvas fills its viewport at zoom 1; zoom/pan is a CSS transform on the
+// canvas element. paintAt() maps clicks via getBoundingClientRect(), which
+// already reflects the transform, so drawing coordinates stay correct at any
+// zoom without extra maths.
+
+const PAINT_MIN_ZOOM = 1;
+const PAINT_MAX_ZOOM = 8;
+
+var paintZoom = 1;
+var paintPanX = 0;
+var paintPanY = 0;
+
+function applyPaintTransform() {
+  paintCanvas.style.transform = `translate(${paintPanX}px, ${paintPanY}px) scale(${paintZoom})`;
+}
+
+function syncZoomUI() {
+  paintZoomSlider.value = paintZoom.toString();
+  paintZoomLabel.textContent = `${paintZoom.toFixed(1)}×`;
+}
+
+// keep the canvas covering the viewport — no dragging it off into empty space
+function clampPan() {
+  const size = paintViewport.clientWidth;
+  const scaled = size * paintZoom;
+  const min = size - scaled; // <= 0 once zoomed in
+  paintPanX = Math.min(0, Math.max(min, paintPanX));
+  paintPanY = Math.min(0, Math.max(min, paintPanY));
+}
+
+/** Zoom to `newZoom` keeping the viewport-relative point (px, py) fixed. */
+function zoomAroundPoint(px: number, py: number, newZoom: number) {
+  newZoom = Math.min(PAINT_MAX_ZOOM, Math.max(PAINT_MIN_ZOOM, newZoom));
+  const canvasX = (px - paintPanX) / paintZoom;
+  const canvasY = (py - paintPanY) / paintZoom;
+  paintPanX = px - canvasX * newZoom;
+  paintPanY = py - canvasY * newZoom;
+  paintZoom = newZoom;
+  clampPan();
+  applyPaintTransform();
+  syncZoomUI();
+}
+
+function resetPaintView() {
+  paintZoom = 1;
+  paintPanX = 0;
+  paintPanY = 0;
+  applyPaintTransform();
+  syncZoomUI();
+}
+
+paintZoomSlider.addEventListener("input", () => {
+  const rect = paintViewport.getBoundingClientRect();
+  zoomAroundPoint(rect.width / 2, rect.height / 2, Number(paintZoomSlider.value));
+});
+getElementByUniqueClassName("paint-reset-view-button").addEventListener(
+  "click",
+  (e) => {
+    e.preventDefault();
+    resetPaintView();
+  },
+);
+
+paintCanvas.addEventListener(
+  "wheel",
+  (ev) => {
+    ev.preventDefault();
+    const rect = paintViewport.getBoundingClientRect();
+    const factor = ev.deltaY < 0 ? 1.15 : 1 / 1.15;
+    zoomAroundPoint(ev.clientX - rect.left, ev.clientY - rect.top, paintZoom * factor);
+  },
+  { passive: false },
+);
+// no context menu on the canvas so right-drag can be used to pan
+paintViewport.addEventListener("contextmenu", (e) => e.preventDefault());
+
+// ---- paint pointer handling (draw / right-drag pan / pinch-zoom) ----
+
 var painting = false;
+var drawPointerId: number | null = null;
+var panPointerId: number | null = null;
+var lastPanClientX = 0;
+var lastPanClientY = 0;
+
+// active touch points, for pinch-zoom / two-finger pan
+const activeTouches = new Map<number, { x: number; y: number }>();
+var pinchActive = false;
+var pinchLastDist = 0;
+var pinchLastMidX = 0;
+var pinchLastMidY = 0;
+
+function pinchGeometry() {
+  const pts = [...activeTouches.values()];
+  const dx = pts[0].x - pts[1].x;
+  const dy = pts[0].y - pts[1].y;
+  return {
+    dist: Math.hypot(dx, dy),
+    midX: (pts[0].x + pts[1].x) / 2,
+    midY: (pts[0].y + pts[1].y) / 2,
+  };
+}
+
+function beginPinch() {
+  pinchActive = true;
+  const g = pinchGeometry();
+  pinchLastDist = g.dist;
+  pinchLastMidX = g.midX;
+  pinchLastMidY = g.midY;
+}
+
+function updatePinch() {
+  if (!pinchActive) {
+    beginPinch();
+    return;
+  }
+  const g = pinchGeometry();
+  const rect = paintViewport.getBoundingClientRect();
+  // two-finger drag pans, spreading fingers zooms toward the midpoint
+  paintPanX += g.midX - pinchLastMidX;
+  paintPanY += g.midY - pinchLastMidY;
+  const ratio = pinchLastDist > 0 ? g.dist / pinchLastDist : 1;
+  zoomAroundPoint(g.midX - rect.left, g.midY - rect.top, paintZoom * ratio);
+  pinchLastDist = g.dist;
+  pinchLastMidX = g.midX;
+  pinchLastMidY = g.midY;
+}
+
+/** Discard an in-progress stroke and undo any pixels it placed. */
+function abortPaintStroke() {
+  if (!painting) {
+    return;
+  }
+  painting = false;
+  drawPointerId = null;
+  const snapshot = paintUndoStack.pop();
+  if (snapshot !== undefined) {
+    catData.paint = snapshot;
+    paintUndoButton.disabled = paintUndoStack.length === 0;
+    redrawCat(false);
+  }
+}
+
+function finishPaintStroke() {
+  painting = false;
+  drawPointerId = null;
+  // drop the undo entry if the stroke didn't actually change anything
+  const last = paintUndoStack[paintUndoStack.length - 1];
+  if (
+    last !== undefined &&
+    JSON.stringify(last) === JSON.stringify(catData.paint)
+  ) {
+    paintUndoStack.pop();
+    paintUndoButton.disabled = paintUndoStack.length === 0;
+  }
+  // update the URL/sharecode once the stroke is finished
+  redrawCat(true);
+}
+
 paintCanvas.addEventListener("pointerdown", (ev) => {
+  // right mouse button → pan
+  if (ev.pointerType === "mouse" && ev.button === 2) {
+    ev.preventDefault();
+    panPointerId = ev.pointerId;
+    lastPanClientX = ev.clientX;
+    lastPanClientY = ev.clientY;
+    paintCanvas.setPointerCapture(ev.pointerId);
+    return;
+  }
+  // ignore other non-primary mouse buttons (e.g. middle)
+  if (ev.pointerType === "mouse" && ev.button !== 0) {
+    return;
+  }
+
+  if (ev.pointerType === "touch") {
+    activeTouches.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
+    if (activeTouches.size >= 2) {
+      // a second finger → this is a pinch/pan gesture, not drawing
+      abortPaintStroke();
+      beginPinch();
+      return;
+    }
+  }
+
+  // primary button / single finger → draw
   ev.preventDefault();
   painting = true;
+  drawPointerId = ev.pointerId;
   if (paintToolSelect.value !== "pick") {
     pushPaintUndo();
   }
   paintCanvas.setPointerCapture(ev.pointerId);
-  paintAt(ev);
+  paintAt(ev, true);
 });
+
 paintCanvas.addEventListener("pointermove", (ev) => {
-  if (painting) {
+  if (panPointerId === ev.pointerId) {
+    paintPanX += ev.clientX - lastPanClientX;
+    paintPanY += ev.clientY - lastPanClientY;
+    lastPanClientX = ev.clientX;
+    lastPanClientY = ev.clientY;
+    clampPan();
+    applyPaintTransform();
+    return;
+  }
+  if (ev.pointerType === "touch" && activeTouches.has(ev.pointerId)) {
+    activeTouches.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
+    if (activeTouches.size >= 2) {
+      updatePinch();
+      return;
+    }
+  }
+  if (painting && drawPointerId === ev.pointerId) {
     paintAt(ev);
   }
 });
-paintCanvas.addEventListener("pointerup", () => {
-  if (painting) {
-    painting = false;
-    // drop the undo entry if the stroke didn't actually change anything
-    const last = paintUndoStack[paintUndoStack.length - 1];
-    if (last !== undefined && JSON.stringify(last) === JSON.stringify(catData.paint)) {
-      paintUndoStack.pop();
-      paintUndoButton.disabled = paintUndoStack.length === 0;
-    }
-    // update the URL/sharecode once the stroke is finished
-    redrawCat(true);
+
+function endPaintPointer(ev: PointerEvent) {
+  if (panPointerId === ev.pointerId) {
+    panPointerId = null;
+    return;
   }
-});
+  if (ev.pointerType === "touch") {
+    activeTouches.delete(ev.pointerId);
+    if (activeTouches.size < 2) {
+      pinchActive = false;
+    }
+  }
+  if (drawPointerId === ev.pointerId && painting) {
+    finishPaintStroke();
+  }
+}
+
+paintCanvas.addEventListener("pointerup", endPaintPointer);
+paintCanvas.addEventListener("pointercancel", endPaintPointer);
 
 getElementByUniqueClassName("paint-clear-button").addEventListener(
   "click",
@@ -1071,6 +1567,16 @@ function loadSavedCats(): { name: string; params: string; notes?: string }[] {
   }
 }
 
+function highlightSelectedSavedThumb() {
+  const selected = savedCatsSelect.value;
+  savedThumbs.querySelectorAll(".cat-thumb").forEach((el) => {
+    el.classList.toggle(
+      "selected",
+      (el as HTMLElement).dataset.index === selected,
+    );
+  });
+}
+
 function refreshSavedCatsList(selectIndex: number | null = null) {
   const saved = loadSavedCats();
   savedCatsSelect.innerHTML = "";
@@ -1083,6 +1589,28 @@ function refreshSavedCatsList(selectIndex: number | null = null) {
   if (selectIndex !== null) {
     savedCatsSelect.value = selectIndex.toString();
   }
+
+  // thumbnail strip mirrors the select; clicking a thumb selects that cat
+  savedThumbs.innerHTML = "";
+  if (saved.length === 0) {
+    const empty = document.createElement("span");
+    empty.className = "cat-thumb-empty";
+    empty.textContent = "No saved cats yet.";
+    savedThumbs.appendChild(empty);
+  } else {
+    saved.forEach((cat, i) => {
+      const btn = makeThumbButton(cat.params, cat.name, cat.name);
+      btn.dataset.index = i.toString();
+      btn.addEventListener("click", (e) => {
+        e.preventDefault();
+        savedCatsSelect.value = i.toString();
+        loadNotesForSelection();
+        highlightSelectedSavedThumb();
+      });
+      savedThumbs.appendChild(btn);
+    });
+  }
+  highlightSelectedSavedThumb();
 
   // keep the compare picker in sync, preserving the current choice
   const compareValue = compareSelect.value;
@@ -1133,6 +1661,7 @@ getElementByUniqueClassName("load-cat-button").addEventListener(
     const url = new URL(document.URL);
     catData = CatData.fromURL(`${url.origin}${url.pathname}${entry.params}`);
     setFormFromObject(catData);
+    startNewRecentSession();
     redrawCat(true);
   },
 );
@@ -1432,7 +1961,10 @@ function loadNotesForSelection() {
   catNotesArea.disabled = !entry;
 }
 
-savedCatsSelect.addEventListener("change", loadNotesForSelection);
+savedCatsSelect.addEventListener("change", () => {
+  loadNotesForSelection();
+  highlightSelectedSavedThumb();
+});
 
 getElementByUniqueClassName("save-notes-button").addEventListener(
   "click",
@@ -1452,9 +1984,65 @@ getElementByUniqueClassName("save-notes-button").addEventListener(
 // ---- recent designs ----
 
 const RECENT_KEY = "pixel-cat-maker-recent";
-const recentSelect = getElementByUniqueClassName(
-  "recent-cats-select",
-) as HTMLSelectElement;
+const recentThumbs = getElementByUniqueClassName("recent-thumbs");
+
+// ---- cat thumbnails (shared by Recent and Saved lists) ----
+
+function catLabelOf(params: string): string {
+  const p = new URLSearchParams(params);
+  return `${p.get("colour") ?? "?"} ${
+    p.get("isTortie") === "true" ? "Tortie" : p.get("peltName") ?? "?"
+  }`;
+}
+
+/** Render a 50×50 cat preview from stored params into `canvas`. */
+function renderCatThumb(params: string, canvas: HTMLCanvasElement) {
+  const url = new URL(document.URL);
+  let data;
+  try {
+    data = CatData.fromURL(`${url.origin}${url.pathname}${params}`);
+  } catch {
+    return;
+  }
+  const offscreen = new OffscreenCanvas(50, 50);
+  drawCat(offscreen, data.getPelt(), data.spriteNumber)
+    .then(() => {
+      const ctx = canvas.getContext("2d");
+      if (ctx === null) {
+        return;
+      }
+      ctx.clearRect(0, 0, 50, 50);
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(offscreen, 0, 0);
+    })
+    .catch((err) => console.error(err));
+}
+
+/** A clickable thumbnail button (preview + caption). */
+function makeThumbButton(
+  params: string,
+  labelText: string,
+  title: string,
+): HTMLButtonElement {
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "cat-thumb";
+  btn.title = title;
+
+  const canvas = document.createElement("canvas");
+  canvas.width = 50;
+  canvas.height = 50;
+  canvas.className = "cat-thumb-canvas";
+  btn.appendChild(canvas);
+
+  const label = document.createElement("span");
+  label.className = "cat-thumb-label";
+  label.textContent = labelText;
+  btn.appendChild(label);
+
+  renderCatThumb(params, canvas);
+  return btn;
+}
 
 function loadRecents(): { params: string; time: number }[] {
   try {
@@ -1465,19 +2053,101 @@ function loadRecents(): { params: string; time: number }[] {
   }
 }
 
+function loadRecentDesign(params: string) {
+  const url = new URL(document.URL);
+  catData = CatData.fromURL(`${url.origin}${url.pathname}${params}`);
+  setFormFromObject(catData);
+  startNewRecentSession();
+  redrawCat(true);
+}
+
 function refreshRecentsList() {
   const recents = loadRecents();
-  recentSelect.innerHTML = "";
-  recents.forEach((entry, i) => {
-    const p = new URLSearchParams(entry.params);
-    const option = document.createElement("option");
-    option.value = i.toString();
-    const when = new Date(entry.time);
-    option.textContent = `${p.get("colour") ?? "?"} ${
-      p.get("isTortie") === "true" ? "Tortie" : p.get("peltName") ?? "?"
-    } — ${when.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
-    recentSelect.appendChild(option);
+  recentThumbs.innerHTML = "";
+  if (recents.length === 0) {
+    const empty = document.createElement("span");
+    empty.className = "cat-thumb-empty";
+    empty.textContent = "No recent designs yet.";
+    recentThumbs.appendChild(empty);
+    return;
+  }
+  recents.forEach((entry) => {
+    const label = catLabelOf(entry.params);
+    const time = new Date(entry.time).toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+    const btn = makeThumbButton(entry.params, time, `${label} — ${time}`);
+    btn.addEventListener("click", (e) => {
+      e.preventDefault();
+      loadRecentDesign(entry.params);
+    });
+    recentThumbs.appendChild(btn);
   });
+}
+
+// "Main choice" fields that make a cat a *different* cat rather than a tweak
+// of the current one. Changing anything else (eyes, accessory, white patches,
+// pose, scar, paint...) just updates the slot for the cat you're editing.
+const RECENT_IDENTITY_FIELDS = [
+  "peltName",
+  "colour",
+  "isTortie",
+  "tortieColour",
+  "tortiePattern",
+];
+
+// How long a changed main choice must be *left in place* before it counts as
+// a new cat. Below this, flipping through pelts/colours to preview them just
+// keeps the current slot and never forks history.
+const RECENT_COMMIT_MS = 60000;
+
+function recentIdentityOf(params: string): string {
+  const p = new URLSearchParams(params);
+  return RECENT_IDENTITY_FIELDS.map((f) => `${f}=${p.get(f) ?? ""}`).join("&");
+}
+
+// Identity of the cat occupying the live (top) history slot — the one we keep
+// updating in place. null forces the next snapshot to start a fresh slot
+// (set on load/import boundaries).
+var committedIdentity: string | null = null;
+// A different main-choice identity we're currently previewing, and when it
+// was first seen. It only becomes a new slot once held for RECENT_COMMIT_MS.
+var pendingIdentity: string | null = null;
+var pendingSince = 0;
+var recentCommitTimer: number | undefined;
+var forceNewRecentSlot = false;
+
+function saveRecents(recents: { params: string; time: number }[]) {
+  localStorage.setItem(RECENT_KEY, JSON.stringify(recents.slice(0, 10)));
+  refreshRecentsList();
+}
+
+/** Force the next snapshot to create a new history slot (load/import). */
+function startNewRecentSession() {
+  forceNewRecentSlot = true;
+  pendingIdentity = null;
+  clearTimeout(recentCommitTimer);
+}
+
+function clearPendingIdentity() {
+  pendingIdentity = null;
+  clearTimeout(recentCommitTimer);
+}
+
+/** Fork the previewed main-choice change into its own slot, if still current. */
+function commitPendingIdentity() {
+  const params = getDataURL().search;
+  const identity = recentIdentityOf(params);
+  // user may have reverted or flipped away while the timer was pending
+  if (identity !== pendingIdentity || identity === committedIdentity) {
+    return;
+  }
+  const recents = loadRecents().filter((r) => r.params !== params);
+  recents.unshift({ params, time: Date.now() });
+  committedIdentity = identity;
+  clearPendingIdentity();
+  saveRecents(recents);
 }
 
 var recentTimer: number | undefined;
@@ -1485,27 +2155,40 @@ function scheduleRecentSnapshot() {
   clearTimeout(recentTimer);
   recentTimer = window.setTimeout(() => {
     const params = getDataURL().search;
-    const recents = loadRecents().filter((r) => r.params !== params);
-    recents.unshift({ params, time: Date.now() });
-    localStorage.setItem(RECENT_KEY, JSON.stringify(recents.slice(0, 10)));
-    refreshRecentsList();
-  }, 4000);
-}
+    const identity = recentIdentityOf(params);
+    const recents = loadRecents();
 
-getElementByUniqueClassName("load-recent-button").addEventListener(
-  "click",
-  (e) => {
-    e.preventDefault();
-    const entry = loadRecents()[Number(recentSelect.value)];
-    if (!entry) {
+    if (forceNewRecentSlot || recents.length === 0) {
+      // load/import boundary, or the very first cat → fresh slot
+      forceNewRecentSlot = false;
+      clearPendingIdentity();
+      const deduped = recents.filter((r) => r.params !== params);
+      deduped.unshift({ params, time: Date.now() });
+      committedIdentity = identity;
+      saveRecents(deduped);
       return;
     }
-    const url = new URL(document.URL);
-    catData = CatData.fromURL(`${url.origin}${url.pathname}${entry.params}`);
-    setFormFromObject(catData);
-    redrawCat(true);
-  },
-);
+
+    if (identity === committedIdentity) {
+      // same cat, just a tweak — keep its slot current, cancel any preview
+      clearPendingIdentity();
+      recents[0] = { params, time: Date.now() };
+      saveRecents(recents);
+      return;
+    }
+
+    // A main choice changed. Don't fork yet — this may just be previewing.
+    // Leave the committed cat's slot untouched and (re)arm the commit timer,
+    // resetting the clock only when the previewed identity itself changes.
+    if (identity !== pendingIdentity) {
+      pendingIdentity = identity;
+      pendingSince = Date.now();
+    }
+    clearTimeout(recentCommitTimer);
+    const remaining = Math.max(0, RECENT_COMMIT_MS - (Date.now() - pendingSince));
+    recentCommitTimer = window.setTimeout(commitPendingIdentity, remaining);
+  }, 4000);
+}
 
 // ---- shareable gallery links ----
 

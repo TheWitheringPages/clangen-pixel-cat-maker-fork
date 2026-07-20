@@ -416,18 +416,150 @@ details > *:last-child {
   margin-top: 0;
 }
 
-.paint-canvas {
+.paint-viewport {
+  position: relative;
+  width: 100%;
+  max-width: 400px;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
   border: 1px solid var(--border);
   border-radius: 6px;
-  max-width: 100%;
   touch-action: none;
-  cursor: crosshair;
   background:
     repeating-conic-gradient(
       var(--checker-a) 0% 25%,
       var(--checker-b) 0% 50%
     )
     0 0 / 16px 16px;
+}
+
+.paint-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  transform-origin: 0 0;
+  touch-action: none;
+  cursor: crosshair;
+  image-rendering: pixelated;
+}
+
+.paint-view-controls {
+  gap: 8px;
+  align-items: center;
+}
+
+.paint-view-controls .paint-zoom-slider {
+  flex: 1;
+  min-width: 80px;
+}
+
+.paint-zoom-label {
+  min-width: 3.2em;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.paint-controls-hint {
+  margin-top: 4px;
+}
+
+.paint-tools-hint {
+  margin-top: 4px;
+}
+
+.paint-tools-hint kbd {
+  padding: 1px 5px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 0.85em;
+  background: var(--checker-b);
+}
+
+.paint-recent-colours {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+}
+
+.paint-swatch {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.paint-recent-empty {
+  color: var(--muted);
+}
+
+/* ---- cat thumbnail strips (recent / saved) ---- */
+
+.cat-thumb-strip {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 4px 2px 8px;
+}
+
+.recent-row {
+  display: block;
+}
+
+.cat-thumb {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  width: 64px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--panel, transparent);
+  cursor: pointer;
+}
+
+.cat-thumb:hover {
+  border-color: var(--accent, #888);
+}
+
+.cat-thumb.selected {
+  border-color: var(--accent, #6ab);
+  box-shadow: 0 0 0 1px var(--accent, #6ab);
+}
+
+.cat-thumb-canvas {
+  width: 52px;
+  height: 52px;
+  image-rendering: pixelated;
+  background:
+    repeating-conic-gradient(
+      var(--checker-a) 0% 25%,
+      var(--checker-b) 0% 50%
+    )
+    0 0 / 12px 12px;
+  border-radius: 3px;
+}
+
+.cat-thumb-label {
+  max-width: 56px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.cat-thumb-empty {
+  color: var(--muted);
+  font-size: 0.9rem;
+  padding: 4px 2px;
 }
 
 /* ---- misc ---- */
