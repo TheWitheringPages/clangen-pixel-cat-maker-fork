@@ -18,6 +18,23 @@ fs.mkdirSync(OUTPUT_DIR);
 const spritesIndex = JSON.parse(fs.readFileSync("src/assets/spritesIndex.json"));
 const spriteNumbers = JSON.parse(fs.readFileSync("src/assets/spritesOffsetMap.json"));
 
+// compact group inventory used by the site to hide incompatible options:
+// "all" = groups with art for poses 0-20, "newPoses" = groups that also
+// have art for poses 21-25
+{
+  const extraPosesPath = "src/assets/spritesIndexNewPoses.json";
+  const newPoseGroups = fs.existsSync(extraPosesPath)
+    ? Object.keys(JSON.parse(fs.readFileSync(extraPosesPath)))
+    : [];
+  fs.writeFileSync(
+    "src/assets/spriteGroups.json",
+    JSON.stringify({
+      all: Object.keys(spritesIndex),
+      newPoses: newPoseGroups,
+    }),
+  );
+}
+
 // group by spritesheet so we aren't constantly opening spritesheets
 const batch = {};
 for (const [spriteGroupName, spriteGroupInfo] of Object.entries(spritesIndex)) {

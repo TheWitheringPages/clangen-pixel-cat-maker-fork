@@ -28,6 +28,7 @@
       <nav>
         <a href="index.html">Cat Maker</a>
         <a href="predict-offspring.html">Predict Offspring</a>
+        <a href="family-tree.html">Family Tree</a>
       </nav>
       <button class="theme-toggle" type="button" title="Toggle dark mode">
         🌙
@@ -42,6 +43,7 @@
             class="cat-sprite-img"
             style="image-rendering: pixelated"
           />
+          <div class="palette-row hidden"></div>
           <div class="compare-box hidden">
             <canvas
               class="compare-canvas"
@@ -117,6 +119,15 @@
             </button>
             <button class="download-png-button" type="button">
               Download PNG
+            </button>
+            <button class="age-strip-button" type="button" title="One image of this cat at every life stage">
+              Download Age Strip
+            </button>
+            <button class="character-card-button" type="button" title="A shareable card with name and palette">
+              Download Character Card
+            </button>
+            <button class="palette-button" type="button" title="Show the colours used in this sprite">
+              Show Palette
             </button>
             <button class="copy-url-button" type="button">Copy this cat's URL</button>
             <button class="add-parent-button" type="button">
@@ -2412,6 +2423,10 @@
           <label>Colour</label>
           <input type="color" class="paint-colour" value="#000000" />
         </div>
+        <div class="form-row">
+          <label>Pixel grid</label>
+          <input type="checkbox" class="paint-grid-checkbox" />
+        </div>
         <canvas
           class="paint-canvas"
           width="400"
@@ -2435,13 +2450,37 @@
           <button class="load-cat-button">Load</button>
           <button class="delete-cat-button">Delete</button>
         </div>
+
+        <label class="notes-label">
+          Notes for the selected cat (personality, backstory, anything —
+          saved with your gallery):
+        </label>
+        <textarea
+          class="cat-notes"
+          rows="3"
+          placeholder="No cat selected"
+        ></textarea>
+        <div>
+          <button class="save-notes-button">Save notes</button>
+        </div>
+
+        <div class="form-row recent-row">
+          <label
+            title="The last few designs you paused on, kept automatically"
+            >Recent designs</label
+          >
+          <select class="recent-cats-select"></select>
+          <button class="load-recent-button" type="button">Load</button>
+        </div>
+
         <p class="section-note">
-          Saved cats only exist in this browser. Export them to a file to back
-          them up or share your roster with others.
+          Saved cats only exist in this browser. Export them to a file (or
+          copy a link) to back them up or share your roster with others.
         </p>
         <div>
           <button class="export-gallery-button">Export gallery file</button>
           <button class="import-gallery-button">Import gallery file</button>
+          <button class="copy-gallery-link-button">Copy gallery link</button>
           <input
             type="file"
             class="import-gallery-input hidden"

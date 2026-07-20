@@ -71,6 +71,26 @@
   font: inherit;
 }
 
+#variance-div {
+  margin: 14px 0 0;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+#variance-input {
+  width: 180px;
+}
+
+.variance-hints {
+  display: flex;
+  gap: 130px;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
 #regenerate-button {
   display: block;
   margin: 14px 0 0;

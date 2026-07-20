@@ -4,9 +4,11 @@ import drawCat from "./library/drawCat";
 import loadingImg from "./assets/loading.png";
 import errorImg from "./assets/error_placeholder.png";
 
-import CatData from "./library/CatData";
+import CatData, { nameToSpritesname } from "./library/CatData";
 import { AdjustSlot } from "./library/types";
 import { initThemeToggle } from "./library/theme";
+import peltInfo from "./assets/peltInfo.json";
+import spriteGroups from "./assets/spriteGroups.json";
 
 function getElementByUniqueClassName(className: string): Element {
   return document.getElementsByClassName(className)[0];
@@ -223,7 +225,140 @@ function applyDataURL() {
  * Should be true on form modification but false on page load to avoid
  * getting added to history twice.
  */
+/*
+  ---- compatibility filtering ----
+
+  Not every mod's parts exist for every other mod's parts (e.g. sparkle
+  colours only exist for vanilla and sparkle pelts, and poses 21-25 only
+  have art for vanilla parts). The sprite group inventory generated at
+  build time tells us exactly which combinations exist, so incompatible
+  options are hidden and invalid selections are corrected instead of
+  showing the error sprite.
+*/
+const ALL_GROUPS = new Set<string>(spriteGroups.all);
+const NEWPOSE_GROUPS = new Set<string>(spriteGroups.newPoses);
+
+var allColourValues: string[] | null = null;
+
+function spritesNameOf(peltName: string): string {
+  const mapped = (nameToSpritesname as Record<string, string>)[peltName];
+  return mapped !== undefined ? mapped : peltName.toLowerCase();
+}
+
+function accessoryGroupName(acc: string): string | null {
+  const prefixes: [string[], string][] = [
+    [peltInfo.plant_accessories, "acc_herbs"],
+    [peltInfo.wild_accessories, "acc_wild"],
+    [peltInfo.collars, "collars"],
+    [peltInfo.bone_accessories, "acc_bones"],
+    [peltInfo.butterflies_accessories, "acc_butterflymoth"],
+    [peltInfo.stuff_accessories, "acc_twolegstuff"],
+    [peltInfo.beetle_accessories, "acc_beetle"],
+    [peltInfo.beetle_feathers_accessories, "acc_beetlefeathers"],
+    [peltInfo.ster_accessories, "acc_ster"],
+    [peltInfo.plant2_accessories, "acc_plant2"],
+    [peltInfo.snake_accessories, "acc_snake"],
+    [peltInfo.smallanimal_accessories, "acc_smallAnimal"],
+    [peltInfo.deadinsect_accessories, "acc_deadInsect"],
+    [peltInfo.aliveinsect_accessories, "acc_aliveInsect"],
+    [peltInfo.random_accessories, "acc_random"],
+    [peltInfo.fruit_accessories, "acc_fruit"],
+    [peltInfo.sailormoon_accessories, "acc_sailor"],
+    [peltInfo.crafted_accessories, "acc_crafted"],
+  ];
+  for (const [list, prefix] of prefixes) {
+    if (list.includes(acc)) {
+      return `${prefix}${acc}`;
+    }
+  }
+  return null;
+}
+
+function filterSelect(
+  select: HTMLSelectElement,
+  valid: (value: string) => boolean,
+) {
+  for (const option of Array.from(select.options)) {
+    const ok = option.value === "" || valid(option.value);
+    option.hidden = !ok;
+    option.disabled = !ok;
+    if (!ok && option.selected) {
+      option.selected = false;
+    }
+  }
+  if (
+    !select.multiple &&
+    (select.selectedIndex === -1 ||
+      select.options[select.selectedIndex]?.disabled)
+  ) {
+    const firstOk = Array.from(select.options).find((o) => !o.disabled);
+    if (firstOk) {
+      select.value = firstOk.value;
+    }
+  }
+  for (const group of Array.from(select.querySelectorAll("optgroup"))) {
+    const allHidden = Array.from(group.children).every(
+      (o) => (o as HTMLOptionElement).hidden,
+    );
+    (group as HTMLOptGroupElement).hidden = allHidden;
+  }
+}
+
+function applyCompatibility() {
+  if (allColourValues === null) {
+    allColourValues = Array.from(colourSelect.options).map((o) => o.value);
+  }
+  const colours = allColourValues;
+
+  const pose = Number(spriteNumberSelect.value);
+  const has = (group: string) =>
+    pose >= 21 ? NEWPOSE_GROUPS.has(group) : ALL_GROUPS.has(group);
+
+  const peltHasAnyColour = (name: string) => {
+    const sn = spritesNameOf(name);
+    return colours.some((c) => has(`${sn}${c}`));
+  };
+
+  filterSelect(peltNameSelect, peltHasAnyColour);
+  const peltSprites = spritesNameOf(peltNameSelect.value);
+  filterSelect(colourSelect, (c) => has(`${peltSprites}${c}`));
+
+  filterSelect(tortiePatternSelect, peltHasAnyColour);
+  const tortieSprites = spritesNameOf(
+    tortiePatternSelect.value === "Single"
+      ? "SingleColour"
+      : tortiePatternSelect.value,
+  );
+  filterSelect(tortieColourSelect, (c) => has(`${tortieSprites}${c}`));
+  filterSelect(tortieMaskSelect, (m) => has(`tortiemask${m}`));
+
+  filterSelect(eyeColourSelect, (n) => has(`eyes${n}`));
+  filterSelect(eyeColour2Select, (n) => has(`eyes2${n}`));
+  filterSelect(skinColourSelect, (n) => has(`skin${n}`));
+  filterSelect(whitePatchesSelect, (n) => has(`white${n}`));
+  filterSelect(pointsSelect, (n) => has(`white${n}`));
+  filterSelect(vitiligoSelect, (n) => has(`white${n}`));
+  filterSelect(scarSelect, (n) => has(`scars${n}`));
+  filterSelect(accessorySelect, (n) => {
+    const group = accessoryGroupName(n);
+    return group !== null && has(group);
+  });
+  filterSelect(lineartSelect, (v) => {
+    const groupFor: Record<string, string> = {
+      regular: "lines",
+      dead: "lineartdead",
+      "dark forest": "lineartdf",
+      "aprilfools-regular": "aprilfoolslineart",
+      "aprilfools-dead": "aprilfoolslineartdead",
+      "aprilfools-dark forest": "aprilfoolslineartdf",
+    };
+    const group = groupFor[v];
+    return group === undefined || has(group);
+  });
+}
+
 function redrawCat(applyURL: boolean = true) {
+  applyCompatibility();
   const c = new OffscreenCanvas(50, 50);
   const ctx = c.getContext("2d");
   if (ctx) {
@@ -353,6 +488,10 @@ function redrawCat(applyURL: boolean = true) {
       if (applyURL) {
         const dataURL = getDataURL().toString();
         history.pushState(null, "", dataURL);
+        scheduleRecentSnapshot();
+      }
+      if (!paletteRow.classList.contains("hidden")) {
+        renderPalette();
       }
     })
     .catch((err) => {
@@ -639,7 +778,30 @@ function updatePaintCanvas() {
     }
   }
   ctx.drawImage(lastRenderedCat, 0, 0, paintCanvas.width, paintCanvas.height);
+
+  const gridCheckbox = getElementByUniqueClassName(
+    "paint-grid-checkbox",
+  ) as HTMLInputElement;
+  if (gridCheckbox.checked) {
+    ctx.strokeStyle = "rgb(128 128 128 / 0.4)";
+    ctx.lineWidth = 1;
+    for (let i = 1; i < 50; i++) {
+      ctx.beginPath();
+      ctx.moveTo(i * PAINT_SCALE + 0.5, 0);
+      ctx.lineTo(i * PAINT_SCALE + 0.5, paintCanvas.height);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(0, i * PAINT_SCALE + 0.5);
+      ctx.lineTo(paintCanvas.width, i * PAINT_SCALE + 0.5);
+      ctx.stroke();
+    }
+  }
 }
+
+getElementByUniqueClassName("paint-grid-checkbox").addEventListener(
+  "change",
+  () => updatePaintCanvas(),
+);
 
 function componentToHex(value: number) {
   return value.toString(16).padStart(2, "0");
@@ -900,7 +1062,7 @@ getElementByUniqueClassName("compare-clear-button").addEventListener(
 
 const SAVED_CATS_KEY = "pixel-cat-maker-saved-cats";
 
-function loadSavedCats(): { name: string; params: string }[] {
+function loadSavedCats(): { name: string; params: string; notes?: string }[] {
   try {
     const parsed = JSON.parse(localStorage.getItem(SAVED_CATS_KEY) ?? "[]");
     return Array.isArray(parsed) ? parsed : [];
@@ -941,6 +1103,8 @@ function refreshSavedCatsList(selectIndex: number | null = null) {
     compareSelect.value = "";
     hideCompare();
   }
+
+  loadNotesForSelection();
 }
 
 getElementByUniqueClassName("save-cat-button").addEventListener(
@@ -1045,7 +1209,7 @@ importGalleryInput.addEventListener("change", () => {
       }
 
       const incoming = parsed.filter(
-        (entry): entry is { name: string; params: string } =>
+        (entry): entry is { name: string; params: string; notes?: string } =>
           entry !== null &&
           typeof entry === "object" &&
           typeof entry.name === "string" &&
@@ -1057,19 +1221,7 @@ importGalleryInput.addEventListener("change", () => {
         return;
       }
 
-      const saved = loadSavedCats();
-      let added = 0;
-      for (const entry of incoming) {
-        const duplicate = saved.some(
-          (cat) => cat.name === entry.name && cat.params === entry.params,
-        );
-        if (!duplicate) {
-          saved.push({ name: entry.name, params: entry.params });
-          added++;
-        }
-      }
-      localStorage.setItem(SAVED_CATS_KEY, JSON.stringify(saved));
-      refreshSavedCatsList();
+      const added = mergeGalleryEntries(incoming);
       alert(
         `Imported ${added} cat${added === 1 ? "" : "s"}` +
           (added < incoming.length
@@ -1083,6 +1235,382 @@ importGalleryInput.addEventListener("change", () => {
       importGalleryInput.value = "";
     });
 });
+
+// ---- sprite palette viewer ----
+
+const paletteRow = getElementByUniqueClassName("palette-row") as HTMLElement;
+const paletteButton = getElementByUniqueClassName(
+  "palette-button",
+) as HTMLButtonElement;
+
+function spritePalette(maxColours: number): { hex: string; count: number }[] {
+  if (lastRenderedCat === null) {
+    return [];
+  }
+  const data = lastRenderedCat
+    .getContext("2d")!
+    .getImageData(0, 0, 50, 50).data;
+  const counts: Record<string, number> = {};
+  for (let i = 0; i < data.length; i += 4) {
+    if (data[i + 3] < 200) {
+      continue;
+    }
+    const hex = `#${componentToHex(data[i])}${componentToHex(
+      data[i + 1],
+    )}${componentToHex(data[i + 2])}`;
+    counts[hex] = (counts[hex] ?? 0) + 1;
+  }
+  return Object.entries(counts)
+    .map(([hex, count]) => ({ hex, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, maxColours);
+}
+
+function renderPalette() {
+  paletteRow.innerHTML = "";
+  for (const { hex } of spritePalette(8)) {
+    const swatch = document.createElement("button");
+    swatch.type = "button";
+    swatch.className = "palette-swatch";
+    swatch.style.background = hex;
+    swatch.title = `${hex} — click to copy`;
+    swatch.addEventListener("click", () => {
+      navigator.clipboard?.writeText(hex);
+      swatch.classList.add("copied");
+      setTimeout(() => swatch.classList.remove("copied"), 600);
+    });
+    paletteRow.appendChild(swatch);
+  }
+}
+
+paletteButton.addEventListener("click", (e) => {
+  e.preventDefault();
+  const showing = !paletteRow.classList.contains("hidden");
+  paletteRow.classList.toggle("hidden", showing);
+  paletteButton.textContent = showing ? "Show Palette" : "Hide Palette";
+  if (!showing) {
+    renderPalette();
+  }
+});
+
+// ---- age strip export ----
+
+const AGE_STAGES: { pose: number; label: string }[] = [
+  { pose: 20, label: "newborn" },
+  { pose: 0, label: "kitten" },
+  { pose: 3, label: "adolescent" },
+  { pose: 6, label: "adult" },
+  { pose: 12, label: "senior" },
+];
+
+getElementByUniqueClassName("age-strip-button").addEventListener(
+  "click",
+  async (e) => {
+    e.preventDefault();
+    const scale = Number(scaleSelect.value);
+    const cell = 50 * scale;
+    const strip = new OffscreenCanvas(cell * AGE_STAGES.length, cell);
+    const ctx = strip.getContext("2d")!;
+    ctx.imageSmoothingEnabled = false;
+    ctx.fillStyle = catData.backgroundColour;
+    ctx.fillRect(0, 0, strip.width, strip.height);
+
+    try {
+      for (let i = 0; i < AGE_STAGES.length; i++) {
+        const stage = new OffscreenCanvas(50, 50);
+        await drawCat(stage, catData.getPelt(), AGE_STAGES[i].pose);
+        ctx.drawImage(stage, 0, 0, 50, 50, i * cell, 0, cell, cell);
+      }
+    } catch (err) {
+      console.error(err);
+      alert(
+        "Couldn't render every life stage — some selected parts may not " +
+          "have art for all poses.",
+      );
+      return;
+    }
+
+    const blob = await strip.convertToBlob();
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "cat-age-strip.png";
+    a.click();
+    URL.revokeObjectURL(a.href);
+  },
+);
+
+// ---- character card export ----
+
+function themeColour(name: string, fallback: string) {
+  const value = getComputedStyle(document.documentElement)
+    .getPropertyValue(name)
+    .trim();
+  return value === "" ? fallback : value;
+}
+
+getElementByUniqueClassName("character-card-button").addEventListener(
+  "click",
+  async (e) => {
+    e.preventDefault();
+    if (lastRenderedCat === null) {
+      return;
+    }
+    const name = prompt("Name on the card:", "Unnamed");
+    if (name === null) {
+      return;
+    }
+
+    const W = 560;
+    const H = 280;
+    const card = new OffscreenCanvas(W, H);
+    const ctx = card.getContext("2d")!;
+    ctx.imageSmoothingEnabled = false;
+
+    const surface = themeColour("--surface", "#ffffff");
+    const surface2 = themeColour("--surface-2", "#f0ece3");
+    const text = themeColour("--text", "#333333");
+    const muted = themeColour("--muted", "#777777");
+    const border = themeColour("--border", "#cccccc");
+
+    ctx.fillStyle = surface;
+    ctx.fillRect(0, 0, W, H);
+    ctx.strokeStyle = border;
+    ctx.lineWidth = 2;
+    ctx.strokeRect(1, 1, W - 2, H - 2);
+
+    // cat on a soft inset panel
+    ctx.fillStyle = surface2;
+    ctx.fillRect(20, 20, 240, 240);
+    ctx.drawImage(lastRenderedCat, 0, 0, 50, 50, 30, 30, 220, 220);
+
+    // name
+    ctx.fillStyle = text;
+    ctx.font = "bold 28px system-ui, sans-serif";
+    ctx.fillText(name, 285, 65, W - 305);
+
+    // details
+    ctx.fillStyle = muted;
+    ctx.font = "15px system-ui, sans-serif";
+    const pelt = catData.isTortie ? `Tortie (${catData.peltName})` : catData.peltName;
+    ctx.fillText(`${catData.colour} ${pelt}`, 285, 95, W - 305);
+    ctx.fillText(`Eyes: ${catData.eyeColour}`, 285, 118, W - 305);
+
+    // palette strip
+    const palette = spritePalette(6);
+    for (let i = 0; i < palette.length; i++) {
+      ctx.fillStyle = palette[i].hex;
+      ctx.fillRect(285 + i * 40, 150, 34, 34);
+      ctx.strokeStyle = border;
+      ctx.lineWidth = 1;
+      ctx.strokeRect(285.5 + i * 40, 150.5, 33, 33);
+    }
+
+    // footer
+    ctx.fillStyle = muted;
+    ctx.font = "12px system-ui, sans-serif";
+    ctx.fillText("made with Pixel Cat Maker", 285, 245);
+
+    const blob = await card.convertToBlob();
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `${name.replace(/[^\w-]+/g, "_") || "cat"}-card.png`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  },
+);
+
+// ---- notes on saved cats ----
+
+const catNotesArea = getElementByUniqueClassName(
+  "cat-notes",
+) as HTMLTextAreaElement;
+
+function loadNotesForSelection() {
+  const saved = loadSavedCats();
+  const entry = saved[Number(savedCatsSelect.value)];
+  catNotesArea.value = entry?.notes ?? "";
+  catNotesArea.disabled = !entry;
+}
+
+savedCatsSelect.addEventListener("change", loadNotesForSelection);
+
+getElementByUniqueClassName("save-notes-button").addEventListener(
+  "click",
+  (e) => {
+    e.preventDefault();
+    const saved = loadSavedCats();
+    const index = Number(savedCatsSelect.value);
+    if (!saved[index]) {
+      alert("Select a saved cat first.");
+      return;
+    }
+    saved[index].notes = catNotesArea.value;
+    localStorage.setItem(SAVED_CATS_KEY, JSON.stringify(saved));
+  },
+);
+
+// ---- recent designs ----
+
+const RECENT_KEY = "pixel-cat-maker-recent";
+const recentSelect = getElementByUniqueClassName(
+  "recent-cats-select",
+) as HTMLSelectElement;
+
+function loadRecents(): { params: string; time: number }[] {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(RECENT_KEY) ?? "[]");
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function refreshRecentsList() {
+  const recents = loadRecents();
+  recentSelect.innerHTML = "";
+  recents.forEach((entry, i) => {
+    const p = new URLSearchParams(entry.params);
+    const option = document.createElement("option");
+    option.value = i.toString();
+    const when = new Date(entry.time);
+    option.textContent = `${p.get("colour") ?? "?"} ${
+      p.get("isTortie") === "true" ? "Tortie" : p.get("peltName") ?? "?"
+    } — ${when.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
+    recentSelect.appendChild(option);
+  });
+}
+
+var recentTimer: number | undefined;
+function scheduleRecentSnapshot() {
+  clearTimeout(recentTimer);
+  recentTimer = window.setTimeout(() => {
+    const params = getDataURL().search;
+    const recents = loadRecents().filter((r) => r.params !== params);
+    recents.unshift({ params, time: Date.now() });
+    localStorage.setItem(RECENT_KEY, JSON.stringify(recents.slice(0, 10)));
+    refreshRecentsList();
+  }, 4000);
+}
+
+getElementByUniqueClassName("load-recent-button").addEventListener(
+  "click",
+  (e) => {
+    e.preventDefault();
+    const entry = loadRecents()[Number(recentSelect.value)];
+    if (!entry) {
+      return;
+    }
+    const url = new URL(document.URL);
+    catData = CatData.fromURL(`${url.origin}${url.pathname}${entry.params}`);
+    setFormFromObject(catData);
+    redrawCat(true);
+  },
+);
+
+// ---- shareable gallery links ----
+
+function base64UrlEncode(str: string) {
+  return btoa(unescape(encodeURIComponent(str)))
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+}
+
+function base64UrlDecode(str: string) {
+  const padded = str.replace(/-/g, "+").replace(/_/g, "/");
+  return decodeURIComponent(escape(atob(padded)));
+}
+
+const copyGalleryLinkButton = getElementByUniqueClassName(
+  "copy-gallery-link-button",
+) as HTMLButtonElement;
+copyGalleryLinkButton.addEventListener("click", (e) => {
+  e.preventDefault();
+  const saved = loadSavedCats();
+  if (saved.length === 0) {
+    alert("You have no saved cats to share yet.");
+    return;
+  }
+  const url = new URL(document.URL);
+  const link = `${url.origin}${url.pathname}?gallery=${base64UrlEncode(
+    JSON.stringify(saved),
+  )}`;
+  if (link.length > 30000) {
+    alert(
+      "Your gallery is too large for a link — use 'Export gallery file' " +
+        "instead.",
+    );
+    return;
+  }
+  navigator.clipboard?.writeText(link).then(() => {
+    copyGalleryLinkButton.textContent = "Copied!";
+    setTimeout(() => {
+      copyGalleryLinkButton.textContent = "Copy gallery link";
+    }, 1250);
+  });
+});
+
+function mergeGalleryEntries(
+  incoming: { name: string; params: string; notes?: string }[],
+): number {
+  const saved = loadSavedCats();
+  let added = 0;
+  for (const entry of incoming) {
+    const duplicate = saved.some(
+      (cat) => cat.name === entry.name && cat.params === entry.params,
+    );
+    if (!duplicate) {
+      saved.push({
+        name: entry.name,
+        params: entry.params,
+        ...(typeof entry.notes === "string" ? { notes: entry.notes } : {}),
+      });
+      added++;
+    }
+  }
+  localStorage.setItem(SAVED_CATS_KEY, JSON.stringify(saved));
+  refreshSavedCatsList();
+  return added;
+}
+
+// offer to import a gallery arriving by link
+{
+  const galleryParam = new URL(document.URL).searchParams.get("gallery");
+  if (galleryParam) {
+    try {
+      const incoming = JSON.parse(base64UrlDecode(galleryParam));
+      if (Array.isArray(incoming)) {
+        const valid = incoming.filter(
+          (c) =>
+            c &&
+            typeof c.name === "string" &&
+            typeof c.params === "string" &&
+            c.params.startsWith("?"),
+        );
+        if (
+          valid.length > 0 &&
+          confirm(
+            `This link contains a gallery of ${valid.length} cat${
+              valid.length === 1 ? "" : "s"
+            }. Import into your saved cats?`,
+          )
+        ) {
+          const added = mergeGalleryEntries(valid);
+          alert(`Imported ${added} new cat${added === 1 ? "" : "s"}.`);
+        }
+      }
+    } catch {
+      // malformed link; ignore
+    }
+    // remove the huge parameter from the address bar
+    const url = new URL(document.URL);
+    url.searchParams.delete("gallery");
+    history.replaceState(null, "", url.toString());
+  }
+}
+
+refreshRecentsList();
+loadNotesForSelection();
 
 refreshSavedCatsList();
 

@@ -692,3 +692,4 @@ class CatData {
 }
 
 export default CatData;
+export { nameToSpritesname };

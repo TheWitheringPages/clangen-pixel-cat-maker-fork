@@ -1590,7 +1590,12 @@ function generateTortiePattern(child: Pelt) {
   }
 }
 
-function generateChildPelt(parents: Pelt[]) {
+/*
+  variance (0-100) controls how strongly kits stray from their parents.
+  50 matches classic behaviour; lower values raise the chance of direct
+  inheritance, higher values roll in extra mutations after generation.
+*/
+function generateChildPelt(parents: Pelt[], variance: number = 50) {
   var defaultKit: Pelt = {
     name: "SingleColour",
     colour: "CREAM",
@@ -1602,8 +1607,11 @@ function generateChildPelt(parents: Pelt[]) {
     reverse: false,
   };
 
+  const strictness = Math.max(0, (50 - variance) / 50); // 1 at 0, 0 at 50+
+  const chaos = Math.max(0, (variance - 50) / 50); // 0 at 50, 1 at 100
+
   // direct inheritance
-  if (Math.random() <= 0.15) {
+  if (Math.random() <= 0.15 + strictness * 0.75) {
     const parent: Pelt = choice(parents);
     defaultKit.name = parent.name;
     defaultKit.colour = parent.colour;
@@ -1614,6 +1622,22 @@ function generateChildPelt(parents: Pelt[]) {
     inheritWhite(parents, defaultKit);
   }
   inheritEyes(parents, defaultKit);
+
+  // mutation rolls for high variance
+  if (chaos > 0) {
+    if (Math.random() < chaos * 0.5) {
+      defaultKit.colour = choice(pelt_colours);
+    }
+    if (Math.random() < chaos * 0.5) {
+      defaultKit.eyeColour = choice(eye_colours);
+    }
+    if (Math.random() < chaos * 0.3) {
+      const nonTortie = [tabbies, spotted, plain, exotic].flat();
+      defaultKit.name = choice(nonTortie);
+      defaultKit.tortieBase = undefined;
+    }
+  }
+
   generateTortiePattern(defaultKit);
   defaultKit.skin = choice(skin_sprites);
 

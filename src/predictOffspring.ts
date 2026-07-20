@@ -28,6 +28,13 @@ const regenerateButton = document.getElementById(
   "regenerate-button",
 ) as HTMLButtonElement;
 const amountInput = document.getElementById("amount-input") as HTMLInputElement;
+const varianceInput = document.getElementById(
+  "variance-input",
+) as HTMLInputElement;
+
+varianceInput.addEventListener("input", () => {
+  document.getElementById("variance-value")!.textContent = varianceInput.value;
+});
 
 // Global constants
 const fanSubmittedParents = [
@@ -151,8 +158,12 @@ regenerateButton.addEventListener("click", async () => {
     numberAmount = maxAmount;
   }
 
+  const variance = Number(varianceInput.value);
   for (var i = 0; i < numberAmount; i++) {
-    const defaultKit = generateChildPelt([parent1Pelt, parent2Pelt]);
+    const defaultKit = generateChildPelt(
+      [parent1Pelt, parent2Pelt],
+      Number.isFinite(variance) ? variance : 50,
+    );
     const catData = CatData.fromPelt(defaultKit);
     catData.spriteNumber = [0, 1, 2][Math.floor(Math.random() * 3)];
 

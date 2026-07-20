@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>ClanGen Cat Family Tree</title>
+    <meta
+      name="description"
+      content="Build family trees for your ClanGen cats!"
+    />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script>
+      // set the theme before first paint to avoid a flash
+      document.documentElement.dataset.theme =
+        new URLSearchParams(location.search).get("theme") ??
+        localStorage.getItem("pcm-theme") ??
+        (matchMedia("(prefers-color-scheme: dark)").matches
+          ? "dark"
+          : "light");
+    </script>
+  </head>
+  <body>
+    <header class="site-header">
+      <span class="site-title">Pixel Cat Maker</span>
+      <nav>
+        <a href="index.html">Cat Maker</a>
+        <a href="predict-offspring.html">Predict Offspring</a>
+        <a href="family-tree.html">Family Tree</a>
+      </nav>
+      <button class="theme-toggle" type="button" title="Toggle dark mode">
+        🌙
+      </button>
+    </header>
+
+    <main class="tree-page">
+      <section class="card">
+        <h2>Add Cats</h2>
+        <p class="section-note">
+          Add cats from your saved gallery or paste a cat URL, then set each
+          cat's parents to grow the tree. The tree is stored in this browser;
+          use export to share it or move it elsewhere.
+        </p>
+        <div class="tree-toolbar">
+          <select class="tree-saved-select">
+            <option value="">Pick a saved cat…</option>
+          </select>
+          <button class="tree-add-saved-button" type="button">Add</button>
+          <input
+            type="text"
+            class="tree-url-input"
+            placeholder="…or paste a cat URL"
+          />
+          <button class="tree-add-url-button" type="button">Add by URL</button>
+        </div>
+        <div class="tree-toolbar">
+          <button class="tree-export-button" type="button">
+            Export tree file
+          </button>
+          <button class="tree-import-button" type="button">
+            Import tree file
+          </button>
+          <input
+            type="file"
+            class="tree-import-input hidden"
+            accept="application/json,.json"
+          />
+          <button class="tree-clear-button" type="button">Clear tree</button>
+        </div>
+      </section>
+
+      <section class="card tree-area-card">
+        <h2>Tree</h2>
+        <p class="tree-empty-note section-note">
+          No cats yet — add one above to start your family tree.
+        </p>
+        <div class="tree-scroll">
+          <div class="tree-canvas-wrap">
+            <svg class="tree-lines"></svg>
+            <div class="tree-rows"></div>
+          </div>
+        </div>
+      </section>
+    </main>
+    <script type="module" src="/src/familyTree.ts"></script>
+  </body>
+</html>
