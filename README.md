@@ -3,6 +3,8 @@
 A browser-based dollmaker that uses sprites from **ClanGen MegaMerge**. Build a cat,
 predict its offspring, and lay out family trees - no download required.
 
+💬 **[Join The Withering RP Discord!](https://discord.gg/thewithering)**
+
 This is a fork maintained by **Loathe** ([TheWitheringPages](https://github.com/TheWitheringPages/clangen-pixel-cat-maker-fork)),
 forked from [CrazythecatDraws' ClanGen MegaMerge Pixel Cat Maker](https://github.com/CrazyDrawsProjects/clangen-megamerge-pixel-cat-maker),
 which is itself based on the original [pixel-cat-maker](https://github.com/cgen-tools/pixel-cat-maker) by cgen-tools.
@@ -29,7 +31,6 @@ The site is split across a few pages, linked from the header nav:
   gallery) and generates possible offspring using ClanGen's inheritance logic.
 * **Family Tree** (`family-tree.html`) — add cats, assign parents, and grow a family tree.
   Trees are stored in the browser and can be exported to share or move elsewhere.
-
 
 > [!NOTE]
 > I originally used Git LFS for this project, but I eventually decided against using it. However, you can't remove LFS storage objects from a repository on GitHub without recreating the repository. So I recreated the repository.
