@@ -1,6 +1,35 @@
-# Pixel Cat Maker
+# Pixel Cat Maker (fork)
 
-Dollmaker that uses sprites from ClanGen.
+A browser-based dollmaker that uses sprites from **ClanGen MegaMerge**. Build a cat,
+predict its offspring, and lay out family trees - no download required.
+
+This is a fork maintained by **Loathe** ([TheWitheringPages](https://github.com/TheWitheringPages/clangen-pixel-cat-maker-fork)),
+forked from [CrazythecatDraws' ClanGen MegaMerge Pixel Cat Maker](https://github.com/CrazyDrawsProjects/clangen-megamerge-pixel-cat-maker),
+which is itself based on the original [pixel-cat-maker](https://github.com/cgen-tools/pixel-cat-maker) by cgen-tools.
+Because it targets MegaMerge, it includes the expanded MegaMerge/Lifegen sprite sets in
+addition to vanilla ClanGen content. The sprite roster is currently up to date with
+**v08.06.25 of Mega Merge**.
+
+## Features
+
+The site is split across a few pages, linked from the header nav:
+
+* **Cat Maker** (`index.html`) — the main dollmaker. Pick sprite/life stage, pelt (vanilla,
+  Ster, Silly, Dance, Mimi, Lifegen-merge, Sparkle, and more), colour, tortie layers,
+  tints, one or two eye colours, skin, white patches, accessories, and scars. Extras include:
+  * Randomize (all or per-field)
+  * Shading, reverse, and adjustable scale/background colour
+  * Compare-with overlay against another sprite
+  * Download PNG (with optional transparent background), an **age strip** (one image at every
+    life stage), and a shareable **character card** with name and palette
+  * Show/copy the sprite's colour palette
+  * Copy a shareable cat URL that encodes the full design
+  * A saved gallery, plus JSON import/export of appearance data
+* **Predict Offspring** (`predict-offspring.html`) — takes two parent cats (by URL or from the
+  gallery) and generates possible offspring using ClanGen's inheritance logic.
+* **Family Tree** (`family-tree.html`) — add cats, assign parents, and grow a family tree.
+  Trees are stored in the browser and can be exported to share or move elsewhere.
+
 
 > [!NOTE]
 > I originally used Git LFS for this project, but I eventually decided against using it. However, you can't remove LFS storage objects from a repository on GitHub without recreating the repository. So I recreated the repository.
@@ -14,8 +43,8 @@ Dollmaker that uses sprites from ClanGen.
 ### Running and Building from Source
 
 ```
-git clone https://github.com/cgen-tools/pixel-cat-maker.git
-cd pixel-cat-maker
+git clone https://github.com/TheWitheringPages/clangen-pixel-cat-maker-fork.git
+cd clangen-pixel-cat-maker-fork
 npm install
 ```
 
@@ -117,6 +146,12 @@ file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 ## Credits
 
-* All images in the `public/sprites` folder are by the ClanGen Team and are licensed under 
-[CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/).
+* Sprites (all images in the `public/sprites` folder) are by the **ClanGen Team** and are
+  licensed under [CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/). The
+  MegaMerge/Lifegen sprite sets are by their respective mod teams.
+* **Do not use sprites created by this generator for commercial purposes.**
 * Some code (particularly the sprite drawing code in `src/drawCat.ts` and all its imports) is based on or derived from [ClanGen](https://github.com/ClanGenOfficial/clangen) which is licensed under MPL-2.0.
+* Based on the original [pixel-cat-maker](https://github.com/cgen-tools/pixel-cat-maker) by
+  cgen-tools, and forked from [CrazythecatDraws' ClanGen MegaMerge Pixel Cat Maker](https://github.com/CrazyDrawsProjects/clangen-megamerge-pixel-cat-maker).
+</content>
+</invoke>
