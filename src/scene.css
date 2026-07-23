@@ -1,0 +1,303 @@
+.scene-page {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  padding: 18px 16px 40px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.scene-sidebar {
+  flex: 0 0 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.scene-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  position: sticky;
+  top: 12px;
+}
+
+/* ---- canvas stage ---- */
+
+.scene-stage {
+  position: relative;
+  align-self: center;
+  max-width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  background:
+    repeating-conic-gradient(var(--checker-a) 0% 25%, var(--checker-b) 0% 50%)
+    0 0 / 24px 24px;
+}
+
+.scene-canvas,
+.scene-overlay {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  image-rendering: pixelated;
+}
+
+.scene-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
+
+.scene-hint {
+  max-width: 640px;
+}
+
+/* ---- object toolbar ---- */
+
+.scene-obj-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.scene-obj-toolbar button {
+  padding: 5px 9px;
+  font-size: 0.85rem;
+}
+
+/* ---- sidebar bits ---- */
+
+.scene-button-column {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.scene-button-column > button,
+.scene-export-button,
+.scene-submit-button {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-text);
+  font-weight: 600;
+}
+
+.scene-button-column > button:hover,
+.scene-submit-button:hover {
+  filter: brightness(1.1);
+}
+
+.scene-load-row,
+.scene-add-row,
+.scene-sticker-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.scene-load-row select,
+.scene-add-row input,
+.scene-add-row select {
+  flex: 1;
+  min-width: 0;
+}
+
+.scene-submit-button {
+  display: inline-block;
+  text-align: center;
+  text-decoration: none;
+  padding: 8px 12px;
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  margin-top: 6px;
+}
+
+.scene-upload-label {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 6px 10px;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--text);
+  font-size: 0.85rem;
+}
+
+.scene-upload-label:hover {
+  border-color: var(--accent);
+}
+
+.scene-tray-heading {
+  margin: 12px 0 4px;
+  font-size: 0.8rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.scene-tray {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-height: 20px;
+}
+
+.scene-tray-empty {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.scene-asset {
+  position: relative;
+  width: 64px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  padding: 3px;
+  cursor: pointer;
+}
+
+.scene-asset:hover {
+  border-color: var(--accent);
+}
+
+.scene-asset img {
+  display: block;
+  width: 100%;
+  height: 44px;
+  object-fit: contain;
+  image-rendering: pixelated;
+  background:
+    repeating-conic-gradient(var(--checker-a) 0% 25%, var(--checker-b) 0% 50%)
+    0 0 / 12px 12px;
+}
+
+.scene-asset-name {
+  display: block;
+  font-size: 0.65rem;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.scene-asset-delete {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 18px;
+  height: 18px;
+  line-height: 1;
+  padding: 0;
+  border-radius: 50%;
+  font-size: 0.7rem;
+}
+
+/* ---- sticker editor modal ---- */
+
+.sticker-editor-modal {
+  position: fixed;
+  inset: 0;
+  background: rgb(0 0 0 / 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  padding: 16px;
+}
+
+.sticker-editor {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  max-width: 480px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sticker-editor-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.sticker-grid-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.sticker-recent-colours {
+  display: flex;
+  gap: 5px;
+  min-height: 18px;
+}
+
+.sticker-swatch {
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0;
+  cursor: pointer;
+}
+
+.sticker-editor-viewport {
+  align-self: center;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background:
+    repeating-conic-gradient(var(--checker-a) 0% 25%, var(--checker-b) 0% 50%)
+    0 0 / 16px 16px;
+}
+
+.sticker-canvas {
+  display: block;
+  image-rendering: pixelated;
+  touch-action: none;
+  width: 400px;
+  height: 400px;
+  max-width: 80vw;
+  max-height: 80vw;
+}
+
+.sticker-editor-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.sticker-save-button {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-text);
+  font-weight: 600;
+}
+
+@media (max-width: 860px) {
+  .scene-page {
+    flex-direction: column;
+  }
+
+  .scene-sidebar {
+    flex-basis: auto;
+    width: 100%;
+  }
+
+  .scene-main {
+    position: static;
+    width: 100%;
+  }
+}

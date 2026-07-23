@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Pixel Cat Scene Composer</title>
+    <meta
+      name="description"
+      content="Arrange your ClanGen cats, stickers and backgrounds into a scene!"
+    />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script>
+      // set the theme before first paint to avoid a flash
+      document.documentElement.dataset.theme =
+        new URLSearchParams(location.search).get("theme") ??
+        localStorage.getItem("pcm-theme") ??
+        (matchMedia("(prefers-color-scheme: dark)").matches
+          ? "dark"
+          : "light");
+    </script>
+  </head>
+  <body>
+    <header class="site-header">
+      <span class="site-title">Pixel Cat Maker</span>
+      <nav>
+        <a href="index.html">Cat Maker</a>
+        <a href="predict-offspring.html">Predict Offspring</a>
+        <a href="family-tree.html">Family Tree</a>
+        <a href="scene.html">Scene Composer</a>
+      </nav>
+      <a
+        class="header-discord"
+        href="https://discord.gg/thewithering"
+        target="_blank"
+        rel="noopener noreferrer"
+        title="Join The Withering RP Discord"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path
+            d="M20.317 4.3698a19.7913 19.7913 0 0 0-4.8851-1.5152.0741.0741 0 0 0-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 0 0-.0785-.037 19.7363 19.7363 0 0 0-4.8852 1.515.0699.0699 0 0 0-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 0 0 .0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 0 0 .0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 0 0-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 0 1-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 0 1 .0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 0 1 .0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 0 1-.0066.1276 12.2986 12.2986 0 0 1-1.873.8914.0766.0766 0 0 0-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 0 0 .0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 0 0 .0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 0 0-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z"
+          />
+        </svg>
+        Join The Withering RP!
+      </a>
+      <button class="theme-toggle" type="button" title="Toggle dark mode">
+        🌙
+      </button>
+    </header>
+
+    <main class="scene-page">
+      <aside class="scene-sidebar">
+        <section class="card">
+          <h2>Canvas</h2>
+          <div class="form-row">
+            <label>Shape</label>
+            <select class="scene-preset-select">
+              <option value="landscape">Landscape (640x360)</option>
+              <option value="square">Square (512x512)</option>
+              <option value="portrait">Portrait (360x640)</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label>Export scale</label>
+            <select class="scene-export-scale">
+              <option value="1">1x</option>
+              <option value="2" selected>2x</option>
+            </select>
+          </div>
+          <div class="scene-button-column">
+            <button class="scene-export-button" type="button">
+              Download PNG
+            </button>
+            <button class="scene-save-button" type="button">Save scene</button>
+            <div class="scene-load-row">
+              <select class="scene-load-select">
+                <option value="">Load a saved scene…</option>
+              </select>
+              <button class="scene-load-button" type="button">Load</button>
+              <button class="scene-delete-scene-button" type="button">
+                Delete
+              </button>
+            </div>
+            <button class="scene-clear-button" type="button">
+              Clear canvas
+            </button>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2>Add Cats</h2>
+          <p class="section-note">
+            Drop in cats from your saved gallery or paste a cat URL, then drag
+            them around the canvas.
+          </p>
+          <div class="scene-add-row">
+            <select class="scene-cat-select">
+              <option value="">Pick a saved cat…</option>
+            </select>
+            <button class="scene-add-cat-button" type="button">Add</button>
+          </div>
+          <div class="scene-add-row">
+            <input
+              type="text"
+              class="scene-cat-url"
+              placeholder="…or paste a cat URL"
+            />
+            <button class="scene-add-cat-url-button" type="button">
+              Add by URL
+            </button>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2>Background</h2>
+          <div class="form-row">
+            <label>Fit</label>
+            <select class="scene-bg-fit-select">
+              <option value="cover">Cover</option>
+              <option value="contain">Contain</option>
+            </select>
+          </div>
+          <button class="scene-bg-none-button" type="button">
+            No background
+          </button>
+          <h3 class="scene-tray-heading">Community backgrounds</h3>
+          <div class="scene-tray scene-community-backgrounds"></div>
+          <h3 class="scene-tray-heading">Your backgrounds</h3>
+          <div class="scene-tray scene-custom-backgrounds"></div>
+          <label class="scene-upload-label">
+            Upload a background
+            <input
+              type="file"
+              class="scene-bg-upload"
+              accept="image/png,image/*"
+              hidden
+            />
+          </label>
+        </section>
+
+        <section class="card">
+          <h2>Stickers</h2>
+          <div class="scene-sticker-actions">
+            <button class="scene-draw-sticker-button" type="button">
+              ✏️ Draw a sticker
+            </button>
+            <label class="scene-upload-label">
+              Upload a sticker
+              <input
+                type="file"
+                class="scene-sticker-upload"
+                accept="image/png,image/*"
+                hidden
+              />
+            </label>
+          </div>
+          <h3 class="scene-tray-heading">Community stickers</h3>
+          <div class="scene-tray scene-community-stickers"></div>
+          <h3 class="scene-tray-heading">Your stickers</h3>
+          <div class="scene-tray scene-custom-stickers"></div>
+        </section>
+
+        <section class="card">
+          <h2>Share your art</h2>
+          <p class="section-note">
+            Backgrounds and stickers you made can be submitted for everyone to
+            use, under
+            <a
+              href="https://creativecommons.org/licenses/by-nc/4.0/"
+              target="_blank"
+              rel="noopener noreferrer"
+              >CC BY-NC 4.0</a
+            >. Submissions open a public GitHub issue and are added by hand after
+            review. Only submit art you made yourself.
+          </p>
+          <a
+            class="scene-submit-button"
+            href="https://github.com/TheWitheringPages/clangen-pixel-cat-maker-fork/issues/new?template=asset-submission.yml"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Submit an asset on GitHub
+          </a>
+        </section>
+      </aside>
+
+      <div class="scene-main">
+        <div class="scene-obj-toolbar hidden">
+          <button class="scene-obj-flip" type="button" title="Flip horizontally">
+            ↔ Flip
+          </button>
+          <button class="scene-obj-rotate-left" type="button" title="Rotate 15° left">
+            ⟲
+          </button>
+          <button class="scene-obj-rotate-right" type="button" title="Rotate 15° right">
+            ⟳
+          </button>
+          <button class="scene-obj-forward" type="button" title="Bring forward">
+            Forward
+          </button>
+          <button class="scene-obj-back" type="button" title="Send back">
+            Back
+          </button>
+          <button class="scene-obj-duplicate" type="button" title="Duplicate">
+            Duplicate
+          </button>
+          <button class="scene-obj-delete" type="button" title="Delete (Del)">
+            Delete
+          </button>
+        </div>
+        <div class="scene-stage">
+          <canvas class="scene-canvas"></canvas>
+          <canvas class="scene-overlay"></canvas>
+        </div>
+        <p class="section-note scene-hint">
+          Click an object to select it. Drag to move, drag a corner to resize,
+          drag the top handle to rotate (hold Shift to snap). Delete key removes
+          the selection.
+        </p>
+      </div>
+    </main>
+
+    <!-- pixel editor for drawing a sticker -->
+    <div class="sticker-editor-modal hidden">
+      <div class="sticker-editor">
+        <h2>Draw a sticker</h2>
+        <div class="sticker-editor-toolbar">
+          <select class="sticker-tool-select">
+            <option value="draw">Draw</option>
+            <option value="erase">Erase</option>
+            <option value="fill">Fill</option>
+            <option value="pick">Eyedropper</option>
+          </select>
+          <input type="color" class="sticker-colour" value="#000000" />
+          <label class="sticker-grid-label">
+            Grid
+            <input type="checkbox" class="sticker-grid-checkbox" checked />
+          </label>
+          <button class="sticker-undo-button" type="button" disabled>
+            Undo
+          </button>
+          <button class="sticker-clear-button" type="button">Clear</button>
+        </div>
+        <div class="sticker-recent-colours"></div>
+        <div class="sticker-editor-viewport">
+          <canvas class="sticker-canvas"></canvas>
+        </div>
+        <div class="sticker-editor-actions">
+          <button class="sticker-save-button" type="button">
+            Save sticker
+          </button>
+          <button class="sticker-cancel-button" type="button">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="/src/scene.ts"></script>
+  </body>
+</html>

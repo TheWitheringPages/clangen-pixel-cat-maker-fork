@@ -1,0 +1,60 @@
+name: Art asset submission
+description: Submit a background or sticker for use in the Pixel Cat Maker
+title: "[asset] "
+labels: ["asset-submission"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for contributing art. Submissions are reviewed by hand and added
+        to the tool after approval. Only submit art you made yourself.
+  - type: dropdown
+    id: type
+    attributes:
+      label: Asset type
+      options:
+        - Background
+        - Sticker
+    validations:
+      required: true
+  - type: input
+    id: name
+    attributes:
+      label: Asset name
+      description: A short name shown in the tool.
+    validations:
+      required: true
+  - type: input
+    id: credit
+    attributes:
+      label: Credit
+      description: How you want to be credited (name, handle, or "anonymous").
+    validations:
+      required: true
+  - type: textarea
+    id: art
+    attributes:
+      label: The artwork
+      description: >
+        Drag and drop your PNG into this box to attach it. Transparent PNGs work
+        best for stickers.
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes (optional)
+      description: Anything else worth knowing about the piece.
+  - type: checkboxes
+    id: license
+    attributes:
+      label: License and originality
+      options:
+        - label: >
+            I created this artwork myself and license it under CC BY-NC 4.0 for
+            free use in this tool.
+          required: true
+        - label: >
+            It has no AI-generated, traced, or stolen content, and nothing
+            inappropriate.
+          required: true

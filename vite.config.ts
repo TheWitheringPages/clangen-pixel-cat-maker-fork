@@ -13,6 +13,7 @@ export default defineConfig({
         main: resolve(__dirname, "index.html"),
         "predict-offspring": resolve(__dirname, "predict-offspring.html"),
         "family-tree": resolve(__dirname, "family-tree.html"),
+        "scene": resolve(__dirname, "scene.html"),
         "mods": resolve(__dirname, "mods.html"),
       }
     },

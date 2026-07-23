@@ -31,9 +31,32 @@ The site is split across a few pages, linked from the header nav:
   gallery) and generates possible offspring using ClanGen's inheritance logic.
 * **Family Tree** (`family-tree.html`) — add cats, assign parents, and grow a family tree.
   Trees are stored in the browser and can be exported to share or move elsewhere.
+* **Scene Composer** (`scene.html`): arrange saved cats, stickers and a background on a
+  larger canvas (drag, resize, rotate, flip, layer order, duplicate), then export the scene
+  as a PNG. Upload your own backgrounds and stickers or draw a sticker pixel by pixel; all
+  custom art stays in your browser. Backgrounds and stickers can optionally be submitted for
+  everyone to use (see [Contributing art](#contributing-art)).
 
 > [!NOTE]
 > I originally used Git LFS for this project, but I eventually decided against using it. However, you can't remove LFS storage objects from a repository on GitHub without recreating the repository. So I recreated the repository.
+
+## Contributing art
+
+The Scene Composer can use community-made **backgrounds** and **stickers**. To submit one,
+open an [art submission issue](https://github.com/TheWitheringPages/clangen-pixel-cat-maker-fork/issues/new?template=asset-submission.yml)
+and attach your PNG. By submitting you confirm you made the art yourself and license it under
+[CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/). Submissions are reviewed by
+hand, so nothing is added automatically.
+
+Only backgrounds and stickers can be submitted. Custom pelts are not supported, because a pelt
+is composited from spritesheets across every colour and pose rather than a single image.
+
+To add an approved submission (maintainer):
+
+1. Drop the PNG into `public/community/backgrounds/` or `public/community/stickers/`.
+2. Add an entry to `src/assets/communityAssets.json` with `file`, `type` (`background` or
+   `sticker`), `name`, and optional `author`/`credit`/`license`.
+3. Rebuild and deploy. The asset then appears in the composer for everyone.
 
 ## Dev Requirements
 
