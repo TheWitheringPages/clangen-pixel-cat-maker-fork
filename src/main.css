@@ -396,6 +396,12 @@ button:hover {
   padding: 6px 8px;
 }
 
+.field-buttons {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
 .lock-button {
   padding: 6px 8px;
   opacity: 0.55;

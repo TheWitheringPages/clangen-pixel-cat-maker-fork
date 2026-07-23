@@ -674,7 +674,12 @@ for (const randomButton of Array.from(randomButtons)) {
     saveLockedFields();
     syncLock();
   });
-  randomButton.insertAdjacentElement("afterend", lockButton);
+  // keep the shuffle and lock buttons together in the row's last cell so the
+  // lock doesn't spill onto its own grid row
+  const buttons = document.createElement("span");
+  buttons.className = "field-buttons";
+  randomButton.replaceWith(buttons);
+  buttons.append(randomButton, lockButton);
 }
 
 // allow dropping into offspring predict
