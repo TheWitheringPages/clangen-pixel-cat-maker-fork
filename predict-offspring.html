@@ -109,16 +109,18 @@
             title="How strongly kits stray from their parents. Low keeps litters close to the family look, high rolls in mutations."
             >Variance: <span id="variance-value">50</span></label
           >
-          <input
-            id="variance-input"
-            type="range"
-            min="0"
-            max="100"
-            value="50"
-          />
-          <span class="variance-hints"
-            ><span>strict</span><span>chaotic</span></span
-          >
+          <div class="variance-slider">
+            <input
+              id="variance-input"
+              type="range"
+              min="0"
+              max="100"
+              value="50"
+            />
+            <span class="variance-hints"
+              ><span>strict</span><span>chaotic</span></span
+            >
+          </div>
         </div>
         <button id="regenerate-button" type="button">Predict Offspring</button>
       </section>

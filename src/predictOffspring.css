@@ -80,13 +80,20 @@
   flex-wrap: wrap;
 }
 
+.variance-slider {
+  display: flex;
+  flex-direction: column;
+}
+
 #variance-input {
   width: 180px;
 }
 
+/* strict/chaotic sit at the two ends of the slider, beneath it */
 .variance-hints {
   display: flex;
-  gap: 130px;
+  justify-content: space-between;
+  width: 180px;
   font-size: 0.75rem;
   color: var(--muted);
 }
