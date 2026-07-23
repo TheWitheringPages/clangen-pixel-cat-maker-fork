@@ -211,3 +211,154 @@
   opacity: 0.7;
   cursor: default;
 }
+
+.kit-tree-button {
+  font-size: 0.8rem;
+  padding: 3px 8px;
+}
+
+/* ---- litter to family tree ---- */
+
+#litter-actions {
+  display: flex;
+}
+
+#send-litter-tree-button {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-text);
+  font-weight: 600;
+}
+
+#send-litter-tree-button:hover:not(:disabled) {
+  filter: brightness(1.1);
+  background: var(--accent);
+}
+
+#send-litter-tree-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ---- reverse lookup ---- */
+
+#rl-input {
+  max-width: 320px;
+}
+
+#rl-analyze-button {
+  margin-top: 10px;
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-text);
+  font-weight: 600;
+}
+
+#rl-analyze-button:hover {
+  filter: brightness(1.1);
+  background: var(--accent);
+}
+
+.rl-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.rl-row {
+  display: grid;
+  grid-template-columns: 130px 1fr;
+  gap: 10px;
+  padding: 8px 0;
+  border-top: 1px solid var(--border);
+}
+
+.rl-trait {
+  font-weight: 600;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.rl-value {
+  font-weight: 600;
+}
+
+.rl-sources {
+  margin-top: 5px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+}
+
+.rl-sources-lead {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.rl-badge {
+  font-size: 0.78rem;
+  padding: 2px 7px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-2);
+}
+
+.rl-badge-top {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.rl-note {
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.rl-examples {
+  margin-top: 18px;
+}
+
+.rl-examples h3 {
+  margin: 0 0 4px;
+}
+
+.rl-pair {
+  display: flex;
+  gap: 12px;
+  padding: 10px 0;
+  border-top: 1px solid var(--border);
+}
+
+.rl-parent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+}
+
+.rl-parent canvas {
+  width: 60px;
+  height: 60px;
+  background:
+    repeating-conic-gradient(
+      var(--checker-a) 0% 25%,
+      var(--checker-b) 0% 50%
+    )
+    0 0 / 16px 16px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+
+.rl-parent-desc {
+  font-size: 0.75rem;
+  max-width: 90px;
+  overflow-wrap: anywhere;
+}
+
+.rl-parent button {
+  font-size: 0.72rem;
+  padding: 2px 8px;
+}

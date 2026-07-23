@@ -159,6 +159,17 @@ const savedThumbs = getElementByUniqueClassName("saved-thumbs");
 // used by the paint editor and the PNG download
 var lastRenderedCat: OffscreenCanvas | null = null;
 
+// form-wide undo/redo. each entry is a full cat state as a URL query string
+// (the same canonical form used by saved cats and the address bar). the paint
+// editor keeps its own separate undo stack for individual strokes.
+var undoStack: string[] = [];
+var redoStack: string[] = [];
+var lastCommittedParams: string | null = null;
+// set while undo/redo is applying a state, so applying it doesn't get recorded
+// as a fresh change
+var applyingHistory = false;
+const UNDO_LIMIT = 100;
+
 function selectByValue(select: HTMLSelectElement, value: string | string[] | null, ignoreNull: boolean) {
   if (value === null && !ignoreNull) {
     value = [];
@@ -232,6 +243,10 @@ function applyDataURL() {
 
   // don't want to reapply url or it adds to history twice
   redrawCat(false);
+
+  // sync the undo baseline to whatever we just loaded, so the next change is
+  // recorded relative to it
+  lastCommittedParams = getDataURL().search;
 }
 
 /**
@@ -505,6 +520,17 @@ function redrawCat(applyURL: boolean = true) {
 
       if (applyURL) {
         const dataURL = getDataURL().toString();
+        const params = getDataURL().search;
+        // record the previous state for undo, unless we're mid undo/redo
+        if (!applyingHistory && lastCommittedParams !== null && lastCommittedParams !== params) {
+          undoStack.push(lastCommittedParams);
+          if (undoStack.length > UNDO_LIMIT) {
+            undoStack.shift();
+          }
+          redoStack = [];
+        }
+        lastCommittedParams = params;
+        updateUndoRedoButtons();
         history.pushState(null, "", dataURL);
         scheduleRecentSnapshot();
       }
@@ -592,6 +618,65 @@ for (const randomButton of randomButtons) {
   });
 }
 
+// ---- field locks (skipped by Randomize All) ----
+//
+// a locked field keeps its value when Randomize All runs. the field's own
+// shuffle button still works, since that's an explicit request to change it.
+
+const LOCKED_FIELDS_KEY = "pixel-cat-maker-locked-fields";
+
+function loadLockedFields(): Set<string> {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(LOCKED_FIELDS_KEY) ?? "[]");
+    return new Set(Array.isArray(parsed) ? parsed : []);
+  } catch {
+    return new Set();
+  }
+}
+
+const lockedFields = loadLockedFields();
+
+function saveLockedFields() {
+  localStorage.setItem(
+    LOCKED_FIELDS_KEY,
+    JSON.stringify(Array.from(lockedFields)),
+  );
+}
+
+function isLocked(selectId: string): boolean {
+  return lockedFields.has(selectId);
+}
+
+// add a lock toggle next to every shuffle button
+for (const randomButton of Array.from(randomButtons)) {
+  const selectId = randomButton.dataset.selectId;
+  if (!selectId) {
+    continue;
+  }
+  const lockButton = document.createElement("button");
+  lockButton.type = "button";
+  lockButton.className = "lock-button";
+  lockButton.dataset.selectId = selectId;
+  lockButton.title = "Lock this field so Randomize All leaves it alone";
+  const syncLock = () => {
+    const locked = lockedFields.has(selectId);
+    lockButton.textContent = locked ? "🔒" : "🔓";
+    lockButton.classList.toggle("locked", locked);
+  };
+  syncLock();
+  lockButton.addEventListener("click", (e) => {
+    e.preventDefault();
+    if (lockedFields.has(selectId)) {
+      lockedFields.delete(selectId);
+    } else {
+      lockedFields.add(selectId);
+    }
+    saveLockedFields();
+    syncLock();
+  });
+  randomButton.insertAdjacentElement("afterend", lockButton);
+}
+
 // allow dropping into offspring predict
 catSprite.addEventListener("dragstart", (ev) => {
   ev.dataTransfer?.setData("text/plain", document.location.search);
@@ -629,82 +714,111 @@ getElementByUniqueClassName("randomize-all-button")?.addEventListener(
   (e) => {
     e.preventDefault();
 
-    randomizeSelected(spriteNumberSelect);
-    randomizeSelected(peltNameSelect);
-    // pick a colour the freshly chosen pattern actually has
-    if (
-      !randomizeSelected(colourSelect, (c) =>
-        peltSupportsColour(peltNameSelect.value, c),
-      )
-    ) {
-      randomizeSelected(colourSelect);
+    // locked fields keep their current value; everything else is rerolled
+    if (!isLocked("sprite-no-select")) {
+      randomizeSelected(spriteNumberSelect);
     }
-    randomizeSelected(tortiePatternSelect);
-    randomizeSelected(tortieColourSelect);
-    randomizeSelected(tortieMaskSelect);
-    if (Math.random() <= 0.5) {
-      isTortieCheckbox.checked = true;
-    } else {
-      isTortieCheckbox.checked = false;
+    if (!isLocked("pelt-name-select")) {
+      randomizeSelected(peltNameSelect);
     }
-    randomizeSelected(tintSelect);
-    randomizeSelected(eyeColourSelect);
-    if (Math.random() <= 0.5) {
-      randomizeSelected(eyeColour2Select);
-    } else {
-      eyeColour2Select.selectedIndex = 0;
+    if (!isLocked("colour-select")) {
+      // pick a colour the freshly chosen pattern actually has
+      if (
+        !randomizeSelected(colourSelect, (c) =>
+          peltSupportsColour(peltNameSelect.value, c),
+        )
+      ) {
+        randomizeSelected(colourSelect);
+      }
     }
-    randomizeSelected(skinColourSelect);
+    if (!isLocked("tortie-pattern-select")) {
+      randomizeSelected(tortiePatternSelect);
+    }
+    if (!isLocked("tortie-colour-select")) {
+      randomizeSelected(tortieColourSelect);
+    }
+    if (!isLocked("tortie-mask-select")) {
+      randomizeSelected(tortieMaskSelect);
+    }
+    isTortieCheckbox.checked = Math.random() <= 0.5;
+    if (!isLocked("tint-select")) {
+      randomizeSelected(tintSelect);
+    }
+    if (!isLocked("eye-colour-select")) {
+      randomizeSelected(eyeColourSelect);
+    }
+    if (!isLocked("eye-colour2-select")) {
+      if (Math.random() <= 0.5) {
+        randomizeSelected(eyeColour2Select);
+      } else {
+        eyeColour2Select.selectedIndex = 0;
+      }
+    }
+    if (!isLocked("skin-colour-select")) {
+      randomizeSelected(skinColourSelect);
+    }
 
     if (Math.random() <= 0.5) {
-      if (Math.random() <= 0.5) {
-        for (let i = 0; i < whitePatchesSelect.options.length; i++)
-          whitePatchesSelect.options[i].selected = false;
-        const validWp = Array.from(whitePatchesSelect.options).filter(opt => opt.value !== "");
-        const countWp = Math.floor(Math.random() * 2) + 1;
-        for (let i = 0; i < countWp; i++) {
-          validWp[Math.floor(Math.random() * validWp.length)].selected = true;
-        }
-      } else {
-        for (let i = 0; i < whitePatchesSelect.options.length; i++) {
-          whitePatchesSelect.options[i].selected = false;
+      if (!isLocked("white-patches-select")) {
+        if (Math.random() <= 0.5) {
+          for (let i = 0; i < whitePatchesSelect.options.length; i++)
+            whitePatchesSelect.options[i].selected = false;
+          const validWp = Array.from(whitePatchesSelect.options).filter(opt => opt.value !== "");
+          const countWp = Math.floor(Math.random() * 2) + 1;
+          for (let i = 0; i < countWp; i++) {
+            validWp[Math.floor(Math.random() * validWp.length)].selected = true;
+          }
+        } else {
+          for (let i = 0; i < whitePatchesSelect.options.length; i++) {
+            whitePatchesSelect.options[i].selected = false;
+          }
         }
       }
-      if (Math.random() <= 0.5) {
-        randomizeSelected(pointsSelect);
-      } else {
-        pointsSelect.selectedIndex = 0;
+      if (!isLocked("points-select")) {
+        if (Math.random() <= 0.5) {
+          randomizeSelected(pointsSelect);
+        } else {
+          pointsSelect.selectedIndex = 0;
+        }
       }
       randomizeSelected(whitePatchesTintSelect);
-      if (Math.random() <= 0.5) {
-        randomizeSelected(vitiligoSelect);
-      } else {
-        vitiligoSelect.selectedIndex = 0;
+      if (!isLocked("vitiligo-select")) {
+        if (Math.random() <= 0.5) {
+          randomizeSelected(vitiligoSelect);
+        } else {
+          vitiligoSelect.selectedIndex = 0;
+        }
       }
     } else {
       whitePatchesTintSelect.selectedIndex = 0;
-      whitePatchesSelect.selectedIndex = 0;
-      pointsSelect.selectedIndex = 0;
-      vitiligoSelect.selectedIndex = 0;
+      if (!isLocked("white-patches-select")) {
+        whitePatchesSelect.selectedIndex = 0;
+      }
+      if (!isLocked("points-select")) {
+        pointsSelect.selectedIndex = 0;
+      }
+      if (!isLocked("vitiligo-select")) {
+        vitiligoSelect.selectedIndex = 0;
+      }
     }
 
-    if (Math.random() <= 0.5) {
-      randomizeSelected(accessorySelect);
-    } else {
-      accessorySelect.selectedIndex = 0;
+    if (!isLocked("accessory-select")) {
+      if (Math.random() <= 0.5) {
+        randomizeSelected(accessorySelect);
+      } else {
+        accessorySelect.selectedIndex = 0;
+      }
     }
 
-    if (Math.random() <= 0.5) {
-      randomizeSelected(scarSelect);
-    } else {
-      scarSelect.selectedIndex = 0;
+    if (!isLocked("scar-select")) {
+      if (Math.random() <= 0.5) {
+        randomizeSelected(scarSelect);
+      } else {
+        scarSelect.selectedIndex = 0;
+      }
     }
 
-    if (Math.random() <= 0.5) {
-      reverseCheckbox.checked = true;
-    } else {
-      reverseCheckbox.checked = false;
-    }
+    reverseCheckbox.checked = Math.random() <= 0.5;
 
     redrawCat();
   },
@@ -746,6 +860,86 @@ importJSONButton.addEventListener("click", (e) => {
     redrawCat(true);
   }
 })
+
+// ---- form-wide undo/redo ----
+
+const undoButton = getElementByUniqueClassName(
+  "undo-button",
+) as HTMLButtonElement;
+const redoButton = getElementByUniqueClassName(
+  "redo-button",
+) as HTMLButtonElement;
+
+function updateUndoRedoButtons() {
+  undoButton.disabled = undoStack.length === 0;
+  redoButton.disabled = redoStack.length === 0;
+}
+
+// load a stored cat state without recording it as a new change
+function applyState(params: string) {
+  applyingHistory = true;
+  const url = new URL(document.URL);
+  catData = CatData.fromURL(`${url.origin}${url.pathname}${params}`);
+  setFormFromObject(catData);
+  redrawCat(false);
+  lastCommittedParams = params;
+  history.replaceState(null, "", getDataURL().toString());
+  applyingHistory = false;
+  updateUndoRedoButtons();
+}
+
+function undo() {
+  const previous = undoStack.pop();
+  if (previous === undefined) {
+    return;
+  }
+  if (lastCommittedParams !== null) {
+    redoStack.push(lastCommittedParams);
+  }
+  applyState(previous);
+}
+
+function redo() {
+  const next = redoStack.pop();
+  if (next === undefined) {
+    return;
+  }
+  if (lastCommittedParams !== null) {
+    undoStack.push(lastCommittedParams);
+  }
+  applyState(next);
+}
+
+undoButton.addEventListener("click", (e) => {
+  e.preventDefault();
+  undo();
+});
+redoButton.addEventListener("click", (e) => {
+  e.preventDefault();
+  redo();
+});
+
+document.addEventListener("keydown", (e) => {
+  // the paint editor handles Ctrl+Z itself while its panel is open
+  if (paintDetails.open) {
+    return;
+  }
+  const target = e.target as HTMLElement;
+  if (target.tagName === "INPUT" || target.tagName === "TEXTAREA") {
+    return;
+  }
+  if (!e.ctrlKey && !e.metaKey) {
+    return;
+  }
+  const key = e.key.toLowerCase();
+  if (key === "z" && !e.shiftKey) {
+    e.preventDefault();
+    undo();
+  } else if (key === "y" || (key === "z" && e.shiftKey)) {
+    e.preventDefault();
+    redo();
+  }
+});
 
 initThemeToggle();
 
@@ -1937,6 +2131,61 @@ function themeColour(name: string, fallback: string) {
   return value === "" ? fallback : value;
 }
 
+// draw the shareable character card and return it as a PNG blob
+async function buildCharacterCard(name: string): Promise<Blob> {
+  const W = 560;
+  const H = 280;
+  const card = new OffscreenCanvas(W, H);
+  const ctx = card.getContext("2d")!;
+  ctx.imageSmoothingEnabled = false;
+
+  const surface = themeColour("--surface", "#ffffff");
+  const surface2 = themeColour("--surface-2", "#f0ece3");
+  const text = themeColour("--text", "#333333");
+  const muted = themeColour("--muted", "#777777");
+  const border = themeColour("--border", "#cccccc");
+
+  ctx.fillStyle = surface;
+  ctx.fillRect(0, 0, W, H);
+  ctx.strokeStyle = border;
+  ctx.lineWidth = 2;
+  ctx.strokeRect(1, 1, W - 2, H - 2);
+
+  // cat on a soft inset panel
+  ctx.fillStyle = surface2;
+  ctx.fillRect(20, 20, 240, 240);
+  ctx.drawImage(lastRenderedCat!, 0, 0, 50, 50, 30, 30, 220, 220);
+
+  // name
+  ctx.fillStyle = text;
+  ctx.font = "bold 28px system-ui, sans-serif";
+  ctx.fillText(name, 285, 65, W - 305);
+
+  // details
+  ctx.fillStyle = muted;
+  ctx.font = "15px system-ui, sans-serif";
+  const pelt = catData.isTortie ? `Tortie (${catData.peltName})` : catData.peltName;
+  ctx.fillText(`${catData.colour} ${pelt}`, 285, 95, W - 305);
+  ctx.fillText(`Eyes: ${catData.eyeColour}`, 285, 118, W - 305);
+
+  // palette strip
+  const palette = spritePalette(6);
+  for (let i = 0; i < palette.length; i++) {
+    ctx.fillStyle = palette[i].hex;
+    ctx.fillRect(285 + i * 40, 150, 34, 34);
+    ctx.strokeStyle = border;
+    ctx.lineWidth = 1;
+    ctx.strokeRect(285.5 + i * 40, 150.5, 33, 33);
+  }
+
+  // footer
+  ctx.fillStyle = muted;
+  ctx.font = "12px system-ui, sans-serif";
+  ctx.fillText("made with Pixel Cat Maker", 285, 245);
+
+  return card.convertToBlob();
+}
+
 getElementByUniqueClassName("character-card-button").addEventListener(
   "click",
   async (e) => {
@@ -1949,57 +2198,7 @@ getElementByUniqueClassName("character-card-button").addEventListener(
       return;
     }
 
-    const W = 560;
-    const H = 280;
-    const card = new OffscreenCanvas(W, H);
-    const ctx = card.getContext("2d")!;
-    ctx.imageSmoothingEnabled = false;
-
-    const surface = themeColour("--surface", "#ffffff");
-    const surface2 = themeColour("--surface-2", "#f0ece3");
-    const text = themeColour("--text", "#333333");
-    const muted = themeColour("--muted", "#777777");
-    const border = themeColour("--border", "#cccccc");
-
-    ctx.fillStyle = surface;
-    ctx.fillRect(0, 0, W, H);
-    ctx.strokeStyle = border;
-    ctx.lineWidth = 2;
-    ctx.strokeRect(1, 1, W - 2, H - 2);
-
-    // cat on a soft inset panel
-    ctx.fillStyle = surface2;
-    ctx.fillRect(20, 20, 240, 240);
-    ctx.drawImage(lastRenderedCat, 0, 0, 50, 50, 30, 30, 220, 220);
-
-    // name
-    ctx.fillStyle = text;
-    ctx.font = "bold 28px system-ui, sans-serif";
-    ctx.fillText(name, 285, 65, W - 305);
-
-    // details
-    ctx.fillStyle = muted;
-    ctx.font = "15px system-ui, sans-serif";
-    const pelt = catData.isTortie ? `Tortie (${catData.peltName})` : catData.peltName;
-    ctx.fillText(`${catData.colour} ${pelt}`, 285, 95, W - 305);
-    ctx.fillText(`Eyes: ${catData.eyeColour}`, 285, 118, W - 305);
-
-    // palette strip
-    const palette = spritePalette(6);
-    for (let i = 0; i < palette.length; i++) {
-      ctx.fillStyle = palette[i].hex;
-      ctx.fillRect(285 + i * 40, 150, 34, 34);
-      ctx.strokeStyle = border;
-      ctx.lineWidth = 1;
-      ctx.strokeRect(285.5 + i * 40, 150.5, 33, 33);
-    }
-
-    // footer
-    ctx.fillStyle = muted;
-    ctx.font = "12px system-ui, sans-serif";
-    ctx.fillText("made with Pixel Cat Maker", 285, 245);
-
-    const blob = await card.convertToBlob();
+    const blob = await buildCharacterCard(name);
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
     a.download = `${name.replace(/[^\w-]+/g, "_") || "cat"}-card.png`;
@@ -2007,6 +2206,39 @@ getElementByUniqueClassName("character-card-button").addEventListener(
     URL.revokeObjectURL(a.href);
   },
 );
+
+// copy the character card straight to the clipboard, handy for pasting into
+// Discord or a chat. hidden where the browser can't write images to clipboard.
+const copyCardButton = getElementByUniqueClassName(
+  "copy-card-button",
+) as HTMLButtonElement;
+if (typeof ClipboardItem !== "undefined" && navigator.clipboard?.write) {
+  copyCardButton.addEventListener("click", async (e) => {
+    e.preventDefault();
+    if (lastRenderedCat === null) {
+      return;
+    }
+    const name = prompt("Name on the card:", "Unnamed");
+    if (name === null) {
+      return;
+    }
+    try {
+      const blob = await buildCharacterCard(name);
+      await navigator.clipboard.write([
+        new ClipboardItem({ "image/png": blob }),
+      ]);
+      copyCardButton.textContent = "Copied!";
+      setTimeout(() => {
+        copyCardButton.textContent = "Copy Card Image";
+      }, 1250);
+    } catch (err) {
+      console.error(err);
+      alert("Couldn't copy the card image to the clipboard.");
+    }
+  });
+} else {
+  copyCardButton.classList.add("hidden");
+}
 
 // ---- notes on saved cats ----
 

@@ -6,6 +6,7 @@
 */
 
 import { Pelt } from "./types";
+import { peltColourExists } from "./compatibility";
 
 const skin_sprites = [
   "BLACK",
@@ -1654,10 +1655,267 @@ function generateChildPelt(parents: Pelt[], variance: number = 50) {
   return defaultKit;
 }
 
+// ---- reverse lookup / ancestry analysis ----
+//
+// the forward model is probabilistic, so there's no exact inverse. instead we
+// read the same weight tables backwards: for each of the child's traits, list
+// the parent categories that can produce it, ranked by weight. also builds a
+// few example parent pairs (validated so they render) that could lead to a
+// similar kit.
+
+type AncestryRow = {
+  trait: string; // e.g. "Pelt pattern"
+  value: string; // the child's actual value
+  sources: string[]; // parent categories most likely to produce it, ranked
+  note?: string;
+};
+
+type AncestryAnalysis = {
+  rows: AncestryRow[];
+};
+
+// output-category order for each weight table, matching inheritPattern/inheritWhite
+const PELT_OUT = ["tabby", "spotted", "plain", "exotic"];
+const PELT_SOURCE_WEIGHTS: Record<string, number[]> = {
+  tabby: [50, 10, 5, 7],
+  spotted: [10, 50, 5, 5],
+  plain: [5, 5, 50, 0],
+  exotic: [15, 15, 1, 45],
+};
+
+const COLOUR_OUT = ["ginger", "black", "white", "brown"];
+const COLOUR_SOURCE_WEIGHTS: Record<string, number[]> = {
+  ginger: [40, 0, 0, 10],
+  black: [0, 40, 2, 5],
+  white: [0, 5, 40, 0],
+  brown: [10, 5, 0, 35],
+};
+
+const WHITE_OUT = ["little", "mid", "high", "mostly", "full"];
+const WHITE_SOURCE_WEIGHTS: Record<string, number[]> = {
+  little: [40, 20, 15, 5, 0],
+  mid: [10, 40, 15, 10, 0],
+  high: [15, 20, 40, 10, 1],
+  mostly: [5, 15, 20, 40, 5],
+  full: [0, 5, 15, 40, 10],
+};
+
+const CATEGORY_LABELS: Record<string, string> = {
+  tabby: "tabby-type",
+  spotted: "spotted-type",
+  plain: "plain-type",
+  exotic: "exotic-type",
+  ginger: "ginger",
+  black: "black/grey",
+  white: "white/pale",
+  brown: "brown",
+  little: "a little white",
+  mid: "some white",
+  high: "lots of white",
+  mostly: "mostly white",
+  full: "fully white",
+};
+
+const PELT_CATEGORY_ARRAYS: Record<string, string[]> = {
+  tabby: tabbies,
+  spotted: spotted,
+  plain: plain,
+  exotic: exotic,
+};
+
+const COLOUR_CATEGORY_ARRAYS: Record<string, string[]> = {
+  ginger: ginger_colours,
+  black: black_colours,
+  white: white_colours,
+  brown: brown_colours,
+};
+
+function peltCategoryOf(name: string): string | null {
+  if (tabbies.includes(name)) return "tabby";
+  if (spotted.includes(name)) return "spotted";
+  if (plain.includes(name)) return "plain";
+  if (exotic.includes(name)) return "exotic";
+  return null;
+}
+
+function colourCategoryOf(colour: string): string | null {
+  if (ginger_colours.includes(colour)) return "ginger";
+  if (black_colours.includes(colour)) return "black";
+  if (white_colours.includes(colour)) return "white";
+  if (brown_colours.includes(colour)) return "brown";
+  return null;
+}
+
+function whiteLevelOf(patch: string): string | null {
+  if (little_white.includes(patch)) return "little";
+  if (mid_white.includes(patch)) return "mid";
+  if (high_white.includes(patch)) return "high";
+  if (mostly_white.includes(patch)) return "mostly";
+  if (patch === "FULLWHITE") return "full";
+  return null;
+}
+
+// parent categories that can produce the output category at outIndex, ranked
+// strongest first
+function rankedSources(
+  weights: Record<string, number[]>,
+  outIndex: number,
+): string[] {
+  return Object.entries(weights)
+    .map(([cat, w]) => ({ cat, weight: w[outIndex] }))
+    .filter((e) => e.weight > 0)
+    .sort((a, b) => b.weight - a.weight)
+    .map((e) => CATEGORY_LABELS[e.cat] ?? e.cat);
+}
+
+function analyzeAncestry(child: Pelt): AncestryAnalysis {
+  const rows: AncestryRow[] = [];
+  const isTortie = torties.includes(child.name);
+
+  // torties carry their real pattern in tortieBase
+  const basePeltName = isTortie
+    ? capitalize(child.tortieBase ?? "single")
+    : child.name;
+  const peltCat = peltCategoryOf(basePeltName);
+
+  if (peltCat) {
+    rows.push({
+      trait: "Pelt pattern",
+      value: `${child.name}${isTortie ? ` (base: ${child.tortieBase})` : ""}`,
+      sources: rankedSources(PELT_SOURCE_WEIGHTS, PELT_OUT.indexOf(peltCat)),
+      note: isTortie
+        ? "Tortie/calico is far likelier when at least one parent is also a tortie."
+        : undefined,
+    });
+  } else {
+    rows.push({
+      trait: "Pelt pattern",
+      value: child.name,
+      sources: [],
+      note: "This pattern is outside the standard inheritance groups, so no parent pairing favours it strongly.",
+    });
+  }
+
+  const colourCat = colourCategoryOf(child.colour);
+  if (colourCat) {
+    rows.push({
+      trait: "Colour",
+      value: child.colour,
+      sources: rankedSources(
+        COLOUR_SOURCE_WEIGHTS,
+        COLOUR_OUT.indexOf(colourCat),
+      ),
+    });
+  }
+
+  const patches = child.whitePatches ?? [];
+  const levels = Array.from(
+    new Set(patches.map(whiteLevelOf).filter((l): l is string => l !== null)),
+  );
+  if (levels.length === 0) {
+    rows.push({
+      trait: "White markings",
+      value: "none / minimal",
+      sources: [],
+      note: "Kits frequently inherit little or no white even from heavily patched parents.",
+    });
+  } else {
+    for (const level of levels) {
+      rows.push({
+        trait: "White markings",
+        value: CATEGORY_LABELS[level] ?? level,
+        sources: rankedSources(
+          WHITE_SOURCE_WEIGHTS,
+          WHITE_OUT.indexOf(level),
+        ).map((s) => `parent with ${s}`),
+      });
+    }
+  }
+
+  rows.push({
+    trait: "Eye colour",
+    value: child.eyeColour2
+      ? `${child.eyeColour} + ${child.eyeColour2} (heterochromia)`
+      : child.eyeColour,
+    sources: [],
+    note:
+      "Any eye colour can appear, but a parent sharing this eye colour makes it about twice as likely." +
+      (child.eyeColour2
+        ? " Two eye colours are rarer, and likelier when a parent also has heterochromia or lots of white."
+        : ""),
+  });
+
+  return { rows };
+}
+
+function buildExampleParent(
+  peltName: string,
+  colour: string,
+  eyeColour: string,
+): Pelt {
+  return {
+    name: peltName,
+    colour,
+    skin: choice(skin_sprites),
+    spritesName:
+      (nameToSpritesname as Record<string, string>)[peltName] ??
+      peltName.toLowerCase(),
+    eyeColour,
+    tint: "none",
+    whitePatchesTint: "none",
+    whitePatches: [],
+    reverse: Math.random() <= 0.5,
+  };
+}
+
+// build two example parents that could plausibly produce a kit like `child`.
+// pelt/colour are biased toward the child's own categories and every pair is
+// validated against the sprite inventory, so they always render.
+function synthesizeParentPair(child: Pelt): [Pelt, Pelt] {
+  const isTortie = torties.includes(child.name);
+  const basePeltName = isTortie
+    ? capitalize(child.tortieBase ?? "single")
+    : child.name;
+  const peltCat = peltCategoryOf(basePeltName);
+  const colourCat = colourCategoryOf(child.colour);
+
+  const peltPool =
+    peltCat && PELT_CATEGORY_ARRAYS[peltCat]
+      ? PELT_CATEGORY_ARRAYS[peltCat]
+      : [tabbies, spotted, plain, exotic].flat();
+  const colourPool =
+    colourCat && COLOUR_CATEGORY_ARRAYS[colourCat]
+      ? COLOUR_CATEGORY_ARRAYS[colourCat]
+      : pelt_colours;
+
+  const pickValid = (): Pelt => {
+    for (let i = 0; i < 60; i++) {
+      const peltName = choice(peltPool);
+      const colour = choice(colourPool);
+      if (peltColourExists(peltName, colour, 0)) {
+        // give roughly a third of parents the child's own eye colour, since a
+        // matching parent eye colour is what makes it likelier
+        const eye = Math.random() < 0.34 ? child.eyeColour : choice(eye_colours);
+        return buildExampleParent(peltName, colour, eye);
+      }
+    }
+    // guaranteed-renderable fallback
+    const colour =
+      pelt_colours.find((c) => peltColourExists("SingleColour", c, 0)) ??
+      "CREAM";
+    return buildExampleParent("SingleColour", colour, child.eyeColour);
+  };
+
+  return [pickValid(), pickValid()];
+}
+
 export {
   inheritEyes,
   inheritPattern,
   inheritWhite,
   generateTortiePattern,
   generateChildPelt,
+  analyzeAncestry,
+  synthesizeParentPair,
 };
+export type { AncestryAnalysis, AncestryRow };

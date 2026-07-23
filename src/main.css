@@ -396,6 +396,31 @@ button:hover {
   padding: 6px 8px;
 }
 
+.lock-button {
+  padding: 6px 8px;
+  opacity: 0.55;
+}
+
+.lock-button.locked {
+  opacity: 1;
+  border-color: var(--accent);
+}
+
+.undo-redo-row {
+  display: flex;
+  gap: 8px;
+}
+
+.undo-redo-row button {
+  flex: 1;
+}
+
+.button-column button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  filter: none;
+}
+
 .button-column {
   display: flex;
   flex-direction: column;

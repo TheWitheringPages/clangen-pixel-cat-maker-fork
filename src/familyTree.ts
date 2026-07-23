@@ -770,4 +770,90 @@ function drawLines() {
 
 addEventListener("resize", () => drawLines());
 
+// ---- litter hand-off from the offspring predictor ----
+//
+// The predictor stashes a litter (plus its parents) under this key and sends
+// the user here. We create or reuse the parent nodes, then add each kit with
+// its parents already linked.
+
+const TREE_LITTER_KEY = "pcm-tree-litter";
+// the payload we've already offered and been told no to, so we don't nag on
+// every window focus (a genuinely new payload still prompts)
+var dismissedLitterRaw: string | null = null;
+
+function importLitterIfPresent() {
+  const raw = localStorage.getItem(TREE_LITTER_KEY);
+  if (!raw || raw === dismissedLitterRaw) {
+    return;
+  }
+  let payload: any;
+  try {
+    payload = JSON.parse(raw);
+  } catch {
+    localStorage.removeItem(TREE_LITTER_KEY);
+    return;
+  }
+  const parents: any[] = Array.isArray(payload?.parents) ? payload.parents : [];
+  const kits: any[] = Array.isArray(payload?.kits) ? payload.kits : [];
+  const validKits = kits.filter(
+    (k) => k && typeof k.params === "string",
+  );
+  if (validKits.length === 0) {
+    localStorage.removeItem(TREE_LITTER_KEY);
+    return;
+  }
+
+  if (
+    !confirm(
+      `Import a litter of ${validKits.length} kit${
+        validKits.length === 1 ? "" : "s"
+      } and their parents into the tree?`,
+    )
+  ) {
+    dismissedLitterRaw = raw;
+    return;
+  }
+
+  // create or reuse each parent, keeping their ids in order
+  const parentIds: string[] = [];
+  for (const p of parents) {
+    if (!p || typeof p.params !== "string") {
+      continue;
+    }
+    let node = tree.find((c) => c.params === p.params);
+    if (!node) {
+      node = {
+        id: makeId(),
+        name: (typeof p.name === "string" && p.name) || "Unnamed",
+        params: p.params,
+        parents: [],
+      };
+      tree.push(node);
+    }
+    parentIds.push(node.id);
+  }
+
+  let kitNumber = 1;
+  for (const k of validKits) {
+    // don't add the same kit twice if the payload gets picked up again
+    if (tree.some((c) => c.params === k.params)) {
+      continue;
+    }
+    tree.push({
+      id: makeId(),
+      name: `Kit ${kitNumber++}`,
+      params: k.params,
+      parents: [...parentIds],
+    });
+  }
+
+  saveTree();
+  renderTree();
+  populateSavedSelect();
+  localStorage.removeItem(TREE_LITTER_KEY);
+}
+
+importLitterIfPresent();
+window.addEventListener("focus", importLitterIfPresent);
+
 renderTree();

@@ -2,7 +2,11 @@ import "./main.css";
 import "./common.css";
 import "./predictOffspring.css";
 import { initThemeToggle } from "./library/theme";
-import { generateChildPelt } from "./library/inheritance";
+import {
+  generateChildPelt,
+  analyzeAncestry,
+  synthesizeParentPair,
+} from "./library/inheritance";
 
 initThemeToggle();
 import CatData from "./library/CatData";
@@ -238,6 +242,55 @@ window.addEventListener("focus", renderParentThumbs);
 const offspringDiv = document.getElementById("offspring")!;
 // kit params the user has pinned to survive the next re-roll
 var pinnedParams: string[] = [];
+// the litter currently on screen, used by the "send to family tree" button
+var currentLitter: string[] = [];
+
+// ---- hand-off of a litter into the family tree ----
+
+const TREE_LITTER_KEY = "pcm-tree-litter";
+
+function searchOf(url: string): string | null {
+  try {
+    return new URL(url).search;
+  } catch {
+    return null;
+  }
+}
+
+// use the saved-cat name if this cat is in the gallery, else a fallback
+function nameForParent(search: string, fallback: string): string {
+  const match = loadSavedCats().find((c) => c.params === search);
+  return match ? match.name : fallback;
+}
+
+// stash the parents + given kits for the family tree page to pick up, then go
+// there. params are stored verbatim so the tree draws them identically.
+function sendLitterToTree(kitParamsList: string[]) {
+  const parents: { name: string; params: string }[] = [];
+  const p1 = searchOf(parent1URLInput.value);
+  const p2 = searchOf(parent2URLInput.value);
+  if (p1) {
+    parents.push({ name: nameForParent(p1, "Parent 1"), params: p1 });
+  }
+  if (p2) {
+    parents.push({ name: nameForParent(p2, "Parent 2"), params: p2 });
+  }
+  const payload = {
+    parents,
+    kits: kitParamsList.map((params) => ({ params })),
+  };
+  localStorage.setItem(TREE_LITTER_KEY, JSON.stringify(payload));
+  location.href = "family-tree.html";
+}
+
+const sendLitterButton = document.getElementById(
+  "send-litter-tree-button",
+) as HTMLButtonElement;
+sendLitterButton.addEventListener("click", () => {
+  if (currentLitter.length > 0) {
+    sendLitterToTree(currentLitter);
+  }
+});
 
 function clampedAmount(): number {
   var amount = Number(amountInput.value);
@@ -327,6 +380,16 @@ function buildKitElement(
   });
   actions.appendChild(saveButton);
 
+  const treeButton = document.createElement("button");
+  treeButton.type = "button";
+  treeButton.className = "kit-tree-button";
+  treeButton.textContent = "→ Tree";
+  treeButton.title = "Add this kit and its parents to the family tree";
+  treeButton.addEventListener("click", () => {
+    sendLitterToTree([params]);
+  });
+  actions.appendChild(treeButton);
+
   kit.appendChild(actions);
   return { el: kit, done };
 }
@@ -348,6 +411,8 @@ regenerateButton.addEventListener("click", async () => {
   }
   pinnedParams = keep;
   const all = [...keep, ...fresh];
+  currentLitter = all;
+  sendLitterButton.disabled = all.length === 0;
 
   offspringDiv.replaceChildren();
   const label = regenerateButton.textContent;
@@ -388,3 +453,207 @@ const parent2URL =
   fanSubmittedParents[Math.floor(Math.random() * fanSubmittedParents.length)];
 parent2URLInput.value = parent2URL;
 refreshParent2(parent2URL);
+
+// ---- reverse lookup (ancestry analysis) ----
+
+const rlUrlInput = document.getElementById("rl-url") as HTMLInputElement;
+const rlSavedSelect = document.getElementById(
+  "rl-saved-select",
+) as HTMLSelectElement;
+const rlCanvas = document.getElementById(
+  "rl-canvas",
+) as unknown as OffscreenCanvas;
+const rlAnalyzeButton = document.getElementById(
+  "rl-analyze-button",
+) as HTMLButtonElement;
+const rlResults = document.getElementById("rl-results") as HTMLElement;
+const rlInputDiv = document.getElementById("rl-input") as HTMLElement;
+
+var rlData: CatData | null = null;
+
+function refreshRL(url: string) {
+  try {
+    rlData = CatData.fromURL(url);
+    drawCat(rlCanvas, rlData.getPelt(), rlData.spriteNumber);
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+rlUrlInput.addEventListener("input", (e: any) => refreshRL(e.target.value));
+rlInputDiv.addEventListener("dragover", (ev) => {
+  ev.preventDefault();
+  ev.dataTransfer!.dropEffect = "copy";
+});
+rlInputDiv.addEventListener("drop", (ev) => {
+  ev.preventDefault();
+  const data = ev.dataTransfer?.getData("text/plain")!;
+  rlUrlInput.value = data;
+  refreshRL(data);
+});
+
+function populateRLSelect() {
+  const saved = loadSavedCats();
+  const current = rlSavedSelect.value;
+  while (rlSavedSelect.options.length > 1) {
+    rlSavedSelect.remove(1);
+  }
+  saved.forEach((cat, i) => {
+    const option = document.createElement("option");
+    option.value = i.toString();
+    option.textContent = cat.name;
+    rlSavedSelect.appendChild(option);
+  });
+  rlSavedSelect.value = current;
+}
+populateRLSelect();
+window.addEventListener("focus", populateRLSelect);
+
+rlSavedSelect.addEventListener("change", () => {
+  const entry = loadSavedCats()[Number(rlSavedSelect.value)];
+  if (rlSavedSelect.value === "" || !entry) {
+    return;
+  }
+  const url = indexBase + entry.params;
+  rlUrlInput.value = url;
+  refreshRL(url);
+});
+
+// draw a Pelt into a real (on-page) canvas, scaled to fill it
+function drawPeltInto(canvas: HTMLCanvasElement, pelt: Pelt, pose: number) {
+  const offscreen = new OffscreenCanvas(50, 50);
+  drawCat(offscreen, pelt, pose)
+    .then(() => {
+      const ctx = canvas.getContext("2d")!;
+      ctx.imageSmoothingEnabled = false;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(offscreen, 0, 0, 50, 50, 0, 0, canvas.width, canvas.height);
+    })
+    .catch((err) => console.error(err));
+}
+
+function renderExampleParents(childPelt: Pelt) {
+  const wrap = document.createElement("div");
+  wrap.className = "rl-examples";
+
+  const heading = document.createElement("h3");
+  heading.textContent = "Example parent pairs";
+  wrap.appendChild(heading);
+
+  const note = document.createElement("p");
+  note.className = "section-note";
+  note.textContent =
+    "Illustrative only - these are pairs whose genetics could plausibly lead " +
+    "to a cat like this. Load a pair as parents and predict to see for yourself.";
+  wrap.appendChild(note);
+
+  for (let i = 0; i < 3; i++) {
+    const [a, b] = synthesizeParentPair(childPelt);
+    const pair = document.createElement("div");
+    pair.className = "rl-pair";
+
+    for (const [pelt, slot] of [
+      [a, 1],
+      [b, 2],
+    ] as [Pelt, number][]) {
+      const cell = document.createElement("div");
+      cell.className = "rl-parent";
+
+      const canvas = document.createElement("canvas");
+      canvas.width = 60;
+      canvas.height = 60;
+      canvas.style.imageRendering = "pixelated";
+      cell.appendChild(canvas);
+      drawPeltInto(canvas, pelt, 6);
+
+      const desc = document.createElement("div");
+      desc.className = "rl-parent-desc";
+      desc.textContent = `${pelt.colour} ${pelt.name}`;
+      cell.appendChild(desc);
+
+      const load = document.createElement("button");
+      load.type = "button";
+      load.textContent = `Load as P${slot}`;
+      const url = CatData.fromPelt(pelt).getURL(indexBase).toString();
+      load.addEventListener("click", () => {
+        if (slot === 1) {
+          parent1URLInput.value = url;
+          refreshParent1(url);
+        } else {
+          parent2URLInput.value = url;
+          refreshParent2(url);
+        }
+      });
+      cell.appendChild(load);
+
+      pair.appendChild(cell);
+    }
+    wrap.appendChild(pair);
+  }
+  rlResults.appendChild(wrap);
+}
+
+function renderAncestry(childPelt: Pelt) {
+  rlResults.innerHTML = "";
+
+  const { rows } = analyzeAncestry(childPelt);
+  const list = document.createElement("div");
+  list.className = "rl-rows";
+  for (const row of rows) {
+    const rowEl = document.createElement("div");
+    rowEl.className = "rl-row";
+
+    const trait = document.createElement("div");
+    trait.className = "rl-trait";
+    trait.textContent = row.trait;
+    rowEl.appendChild(trait);
+
+    const body = document.createElement("div");
+    body.className = "rl-body";
+
+    const value = document.createElement("div");
+    value.className = "rl-value";
+    value.textContent = row.value;
+    body.appendChild(value);
+
+    if (row.sources.length > 0) {
+      const sources = document.createElement("div");
+      sources.className = "rl-sources";
+      const lead = document.createElement("span");
+      lead.className = "rl-sources-lead";
+      lead.textContent = "likely from: ";
+      sources.appendChild(lead);
+      row.sources.forEach((s, i) => {
+        const badge = document.createElement("span");
+        badge.className = "rl-badge";
+        // first source carries the most weight
+        if (i === 0) {
+          badge.classList.add("rl-badge-top");
+        }
+        badge.textContent = s;
+        sources.appendChild(badge);
+      });
+      body.appendChild(sources);
+    }
+
+    if (row.note) {
+      const note = document.createElement("div");
+      note.className = "rl-note";
+      note.textContent = row.note;
+      body.appendChild(note);
+    }
+
+    rowEl.appendChild(body);
+    list.appendChild(rowEl);
+  }
+  rlResults.appendChild(list);
+
+  renderExampleParents(childPelt);
+}
+
+rlAnalyzeButton.addEventListener("click", () => {
+  if (!rlData) {
+    return;
+  }
+  renderAncestry(rlData.getPelt());
+});

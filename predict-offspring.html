@@ -123,7 +123,37 @@
         <button id="regenerate-button" type="button">Predict Offspring</button>
       </section>
 
+      <div id="litter-actions">
+        <button id="send-litter-tree-button" type="button" disabled>
+          🌳 Send litter to family tree
+        </button>
+      </div>
+
       <div id="offspring"></div>
+
+      <section class="card" id="reverse-lookup">
+        <h2>Reverse Lookup</h2>
+        <p class="section-note">
+          Analyze a cat to see which parent traits could have produced it, plus
+          a few example parent pairs. The genetics are probabilistic, so this
+          shows likely sources, not a guaranteed lineage.
+        </p>
+        <div id="rl-input" class="parent">
+          <canvas
+            style="image-rendering: pixelated"
+            id="rl-canvas"
+            width="50"
+            height="50"
+          ></canvas>
+          <label>Cat URL:</label>
+          <input id="rl-url" type="text" />
+          <select id="rl-saved-select">
+            <option value="">Or pick a saved cat…</option>
+          </select>
+        </div>
+        <button id="rl-analyze-button" type="button">Analyze ancestry</button>
+        <div id="rl-results"></div>
+      </section>
     </main>
     <script type="module" src="/src/predictOffspring.ts"></script>
   </body>
