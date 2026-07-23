@@ -662,6 +662,55 @@ el<HTMLButtonElement>("scene-add-cat-url-button").addEventListener("click", () =
   catUrlInput.value = "";
 });
 
+// draw a saved cat into a small preview canvas
+function renderCatThumbInto(params: string, canvasEl: HTMLCanvasElement) {
+  try {
+    const data = CatData.fromURL(indexBase + params);
+    const off = new OffscreenCanvas(50, 50);
+    drawCat(off, data.getPelt(), data.spriteNumber)
+      .then(() => {
+        const c = canvasEl.getContext("2d")!;
+        c.imageSmoothingEnabled = false;
+        c.clearRect(0, 0, canvasEl.width, canvasEl.height);
+        c.drawImage(off, 0, 0, 50, 50, 0, 0, canvasEl.width, canvasEl.height);
+      })
+      .catch((err) => console.error(err));
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+function renderCatThumbs() {
+  const tray = el<HTMLElement>("scene-cat-thumbs");
+  tray.innerHTML = "";
+  const saved = loadSavedCats();
+  if (saved.length === 0) {
+    emptyTray(tray, "No saved cats yet.");
+    return;
+  }
+  for (const cat of saved) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "scene-cat-thumb";
+    btn.title = `Add ${cat.name}`;
+
+    const canvasEl = document.createElement("canvas");
+    canvasEl.width = 50;
+    canvasEl.height = 50;
+    canvasEl.className = "scene-cat-thumb-canvas";
+    btn.appendChild(canvasEl);
+
+    const label = document.createElement("span");
+    label.className = "scene-cat-thumb-name";
+    label.textContent = cat.name;
+    btn.appendChild(label);
+
+    btn.addEventListener("click", () => addCat(cat.params));
+    renderCatThumbInto(cat.params, canvasEl);
+    tray.appendChild(btn);
+  }
+}
+
 function populateCatSelect() {
   const saved = loadSavedCats();
   const current = catSelect.value;
@@ -675,6 +724,7 @@ function populateCatSelect() {
     catSelect.appendChild(option);
   });
   catSelect.value = current;
+  renderCatThumbs();
 }
 populateCatSelect();
 window.addEventListener("focus", populateCatSelect);

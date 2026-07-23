@@ -211,6 +211,41 @@
   font-size: 0.7rem;
 }
 
+.scene-cat-thumb {
+  width: 58px;
+  padding: 3px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.scene-cat-thumb:hover {
+  border-color: var(--accent);
+}
+
+.scene-cat-thumb-canvas {
+  width: 46px;
+  height: 46px;
+  image-rendering: pixelated;
+  background:
+    repeating-conic-gradient(var(--checker-a) 0% 25%, var(--checker-b) 0% 50%)
+    0 0 / 12px 12px;
+  border-radius: 4px;
+}
+
+.scene-cat-thumb-name {
+  font-size: 0.62rem;
+  max-width: 54px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* ---- sticker editor modal ---- */
 
 .sticker-editor-modal {
@@ -321,7 +356,7 @@
     width: 100%;
     flex-direction: row;
     flex-wrap: wrap;
-    align-items: flex-start;
+    align-items: stretch;
   }
 
   .scene-sidebar > .card {
