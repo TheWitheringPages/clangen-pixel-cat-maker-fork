@@ -38,8 +38,8 @@
 
 .scene-stage {
   position: relative;
-  align-self: center;
-  max-width: 100%;
+  width: 100%;
+  margin: 0 auto;
   border: 1px solid var(--border);
   border-radius: 8px;
   overflow: hidden;
@@ -48,19 +48,20 @@
     0 0 / 24px 24px;
 }
 
-.scene-canvas,
-.scene-overlay {
+.scene-canvas {
   display: block;
-  max-width: 100%;
+  width: 100%;
   height: auto;
   image-rendering: pixelated;
 }
 
 .scene-overlay {
+  display: block;
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
+  image-rendering: pixelated;
   touch-action: none;
 }
 
@@ -105,7 +106,8 @@
 
 .scene-load-row,
 .scene-add-row,
-.scene-sticker-actions {
+.scene-sticker-actions,
+.scene-bg-buttons {
   display: flex;
   gap: 6px;
   flex-wrap: wrap;
@@ -296,6 +298,37 @@
   font-weight: 600;
 }
 
+/*
+  wide landscape screens: stack the canvas on top at full width and drop the
+  control cards into a wrapping row beneath it, so the canvas gets the whole
+  width. tall/portrait screens keep the default sidebar-left layout, where the
+  canvas already fills the space next to the controls.
+*/
+@media (min-width: 861px) and (orientation: landscape) {
+  .scene-page {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .scene-main {
+    order: -1;
+    position: static;
+    width: 100%;
+  }
+
+  .scene-sidebar {
+    flex: 0 0 auto;
+    width: 100%;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+
+  .scene-sidebar > .card {
+    flex: 1 1 260px;
+  }
+}
+
 @media (max-width: 860px) {
   .scene-page {
     flex-direction: column;
@@ -307,6 +340,7 @@
   }
 
   .scene-main {
+    order: -1;
     position: static;
     width: 100%;
   }

@@ -55,7 +55,15 @@ type CatLayer = BaseLayer & { kind: "cat"; params: string };
 type StickerLayer = BaseLayer & { kind: "sticker"; ref: AssetRef };
 type Layer = CatLayer | StickerLayer;
 
-type Background = { ref: AssetRef | null; fit: "cover" | "contain" };
+// fit sets the baseline size (cover/contain); scale and offset let the user
+// zoom and pan to frame the background, cropped to the canvas
+type Background = {
+  ref: AssetRef | null;
+  fit: "cover" | "contain";
+  scale: number;
+  offsetX: number;
+  offsetY: number;
+};
 
 // layers are drawn in array order, so the last entry sits on top
 
@@ -64,7 +72,13 @@ type Background = { ref: AssetRef | null; fit: "cover" | "contain" };
 let presetKey = "landscape";
 let canvasW = PRESETS[presetKey].w;
 let canvasH = PRESETS[presetKey].h;
-let background: Background = { ref: null, fit: "cover" };
+let background: Background = {
+  ref: null,
+  fit: "cover",
+  scale: 1,
+  offsetX: 0,
+  offsetY: 0,
+};
 let layers: Layer[] = [];
 let selectedId: string | null = null;
 
@@ -80,12 +94,14 @@ function el<T extends Element>(cls: string): T {
 
 const canvas = el<HTMLCanvasElement>("scene-canvas");
 const overlay = el<HTMLCanvasElement>("scene-overlay");
+const stage = el<HTMLElement>("scene-stage");
 const ctx = canvas.getContext("2d")!;
 const octx = overlay.getContext("2d")!;
 
 const presetSelect = el<HTMLSelectElement>("scene-preset-select");
 const exportScaleSelect = el<HTMLSelectElement>("scene-export-scale");
 const bgFitSelect = el<HTMLSelectElement>("scene-bg-fit-select");
+const bgZoomSlider = el<HTMLInputElement>("scene-bg-zoom");
 const catSelect = el<HTMLSelectElement>("scene-cat-select");
 const catUrlInput = el<HTMLInputElement>("scene-cat-url");
 const loadSelect = el<HTMLSelectElement>("scene-load-select");
@@ -261,6 +277,13 @@ function drawLayer(context: CanvasRenderingContext2D, layer: Layer) {
   context.restore();
 }
 
+// baseline scale that makes the image cover or fit the canvas
+function bgFitScale(iw: number, ih: number): number {
+  return background.fit === "cover"
+    ? Math.max(canvasW / iw, canvasH / ih)
+    : Math.min(canvasW / iw, canvasH / ih);
+}
+
 function drawBackground(context: CanvasRenderingContext2D) {
   if (!background.ref) {
     return;
@@ -271,14 +294,17 @@ function drawBackground(context: CanvasRenderingContext2D) {
   }
   const iw = img.naturalWidth || img.width;
   const ih = img.naturalHeight || img.height;
-  const scale =
-    background.fit === "cover"
-      ? Math.max(canvasW / iw, canvasH / ih)
-      : Math.min(canvasW / iw, canvasH / ih);
+  const scale = bgFitScale(iw, ih) * background.scale;
   const w = iw * scale;
   const h = ih * scale;
   context.imageSmoothingEnabled = false;
-  context.drawImage(img, (canvasW - w) / 2, (canvasH - h) / 2, w, h);
+  context.drawImage(
+    img,
+    (canvasW - w) / 2 + background.offsetX,
+    (canvasH - h) / 2 + background.offsetY,
+    w,
+    h,
+  );
 }
 
 function renderScene() {
@@ -356,7 +382,7 @@ function drawHandles() {
 
 // ---- pointer interaction ----
 
-type DragMode = "move" | "resize" | "rotate" | null;
+type DragMode = "move" | "resize" | "rotate" | "bg" | null;
 let dragMode: DragMode = null;
 let dragOffsetX = 0;
 let dragOffsetY = 0;
@@ -414,10 +440,17 @@ overlay.addEventListener("pointerdown", (ev) => {
     }
   }
 
-  // empty space clears the selection
+  // empty space clears the selection; if a background is set, drag pans it
   selectedId = null;
-  dragMode = null;
   syncObjToolbar();
+  if (background.ref) {
+    dragMode = "bg";
+    dragOffsetX = x - background.offsetX;
+    dragOffsetY = y - background.offsetY;
+    overlay.setPointerCapture(ev.pointerId);
+  } else {
+    dragMode = null;
+  }
   renderScene();
 });
 
@@ -425,11 +458,17 @@ overlay.addEventListener("pointermove", (ev) => {
   if (!dragMode) {
     return;
   }
+  const { x, y } = pointerCanvas(ev);
+  if (dragMode === "bg") {
+    background.offsetX = x - dragOffsetX;
+    background.offsetY = y - dragOffsetY;
+    renderScene();
+    return;
+  }
   const layer = getSelected();
   if (!layer) {
     return;
   }
-  const { x, y } = pointerCanvas(ev);
   if (dragMode === "move") {
     layer.x = x - dragOffsetX;
     layer.y = y - dragOffsetY;
@@ -550,6 +589,14 @@ el<HTMLButtonElement>("scene-obj-delete").addEventListener("click", deleteSelect
 
 // ---- canvas size / presets ----
 
+// cap how wide each preset's stage can display, so the pixel art scales up
+// nicely without over-upscaling or getting too tall
+const STAGE_MAX_WIDTH: Record<string, string> = {
+  landscape: "1100px",
+  square: "620px",
+  portrait: "440px",
+};
+
 function applyPreset(key: string) {
   presetKey = key in PRESETS ? key : "landscape";
   canvasW = PRESETS[presetKey].w;
@@ -558,6 +605,7 @@ function applyPreset(key: string) {
   canvas.height = canvasH;
   overlay.width = canvasW;
   overlay.height = canvasH;
+  stage.style.maxWidth = STAGE_MAX_WIDTH[presetKey];
   renderScene();
 }
 
@@ -661,13 +709,71 @@ async function addStickerLayer(ref: AssetRef) {
   renderScene();
 }
 
+function resetBgFraming() {
+  background.scale = 1;
+  background.offsetX = 0;
+  background.offsetY = 0;
+  bgZoomSlider.value = "1";
+}
+
 function setBackground(ref: AssetRef | null) {
   background.ref = ref;
+  // start each new background fitted and centred
+  resetBgFraming();
   renderScene();
 }
 
 el<HTMLButtonElement>("scene-bg-none-button").addEventListener("click", () =>
   setBackground(null),
+);
+
+bgZoomSlider.addEventListener("input", () => {
+  background.scale = Number(bgZoomSlider.value) || 1;
+  renderScene();
+});
+
+el<HTMLButtonElement>("scene-bg-reset-button").addEventListener("click", () => {
+  resetBgFraming();
+  renderScene();
+});
+
+// scroll to zoom the background (around the cursor) when nothing is selected
+overlay.addEventListener(
+  "wheel",
+  (ev) => {
+    if (selectedId || !background.ref) {
+      return;
+    }
+    const img = imageFor(background.ref);
+    if (!img) {
+      return;
+    }
+    ev.preventDefault();
+    const iw = img.naturalWidth || img.width;
+    const ih = img.naturalHeight || img.height;
+    const rect = overlay.getBoundingClientRect();
+    const ratio = canvasW / rect.width;
+    const px = (ev.clientX - rect.left) * ratio;
+    const py = (ev.clientY - rect.top) * ratio;
+
+    const fit = bgFitScale(iw, ih);
+    const sOld = fit * background.scale;
+    const factor = ev.deltaY < 0 ? 1.1 : 1 / 1.1;
+    const newScale = Math.min(6, Math.max(0.25, background.scale * factor));
+    const sNew = fit * newScale;
+
+    const cx = canvasW / 2;
+    const cy = canvasH / 2;
+    // image pixel currently under the cursor, kept fixed as we rescale
+    const imgX = (px - cx + (iw * sOld) / 2 - background.offsetX) / sOld;
+    const imgY = (py - cy + (ih * sOld) / 2 - background.offsetY) / sOld;
+    background.offsetX = px - cx + (iw * sNew) / 2 - imgX * sNew;
+    background.offsetY = py - cy + (ih * sNew) / 2 - imgY * sNew;
+    background.scale = newScale;
+    bgZoomSlider.value = String(newScale);
+    renderScene();
+  },
+  { passive: false },
 );
 
 // ---- asset trays ----
@@ -905,8 +1011,16 @@ el<HTMLButtonElement>("scene-load-button").addEventListener("click", () => {
   presetKey = scene.preset;
   presetSelect.value = presetKey;
   applyPreset(presetKey);
-  background = scene.background ?? { ref: null, fit: "cover" };
+  const bg = scene.background ?? { ref: null, fit: "cover" };
+  background = {
+    ref: bg.ref ?? null,
+    fit: bg.fit ?? "cover",
+    scale: bg.scale ?? 1,
+    offsetX: bg.offsetX ?? 0,
+    offsetY: bg.offsetY ?? 0,
+  };
   bgFitSelect.value = background.fit;
+  bgZoomSlider.value = String(background.scale);
   layers = Array.isArray(scene.layers) ? scene.layers : [];
   selectedId = null;
   syncObjToolbar();
@@ -935,6 +1049,7 @@ el<HTMLButtonElement>("scene-clear-button").addEventListener("click", () => {
   }
   layers = [];
   background.ref = null;
+  resetBgFraming();
   selectedId = null;
   syncObjToolbar();
   renderScene();

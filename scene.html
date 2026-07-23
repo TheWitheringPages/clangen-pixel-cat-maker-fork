@@ -118,9 +118,29 @@
               <option value="contain">Contain</option>
             </select>
           </div>
-          <button class="scene-bg-none-button" type="button">
-            No background
-          </button>
+          <div class="form-row">
+            <label>Zoom</label>
+            <input
+              type="range"
+              class="scene-bg-zoom"
+              min="0.25"
+              max="6"
+              step="0.05"
+              value="1"
+            />
+          </div>
+          <p class="section-note">
+            Drag the background on the canvas to move it, and scroll to zoom,
+            whenever nothing is selected.
+          </p>
+          <div class="scene-bg-buttons">
+            <button class="scene-bg-reset-button" type="button">
+              Reset framing
+            </button>
+            <button class="scene-bg-none-button" type="button">
+              No background
+            </button>
+          </div>
           <h3 class="scene-tray-heading">Community backgrounds</h3>
           <div class="scene-tray scene-community-backgrounds"></div>
           <h3 class="scene-tray-heading">Your backgrounds</h3>
