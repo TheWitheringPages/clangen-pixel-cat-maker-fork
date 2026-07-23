@@ -7,6 +7,16 @@
   margin: 0 auto;
 }
 
+/*
+  these elements set their own display, which would otherwise beat the shared
+  .hidden rule (same specificity, and scene.css loads after main.css), so keep
+  them hidden explicitly
+*/
+.scene-obj-toolbar.hidden,
+.sticker-editor-modal.hidden {
+  display: none;
+}
+
 .scene-sidebar {
   flex: 0 0 320px;
   display: flex;
