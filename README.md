@@ -3,7 +3,7 @@
 A browser-based dollmaker that uses sprites from **ClanGen MegaMerge**. Build a cat,
 predict its offspring, and lay out family trees - no download required.
 
-💬 **[Join The Withering RP Discord!](https://discord.gg/thewithering)**
+
 
 This is a fork maintained by **Loathe** ([TheWitheringPages](https://github.com/TheWitheringPages/clangen-pixel-cat-maker-fork)),
 forked from [CrazythecatDraws' ClanGen MegaMerge Pixel Cat Maker](https://github.com/CrazyDrawsProjects/clangen-megamerge-pixel-cat-maker),
