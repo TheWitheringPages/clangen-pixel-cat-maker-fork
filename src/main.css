@@ -80,40 +80,11 @@ body {
   color: var(--accent);
 }
 
-.site-header .header-discord {
-  margin-left: auto;
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 6px 12px;
-  border-radius: 8px;
-  background: #5865f2;
-  color: #fff;
-  font-weight: 600;
-  font-size: 0.9rem;
-  white-space: nowrap;
-}
-
-.site-header .header-discord:hover {
-  background: #4752c4;
-  color: #fff;
-}
-
-.header-discord svg {
-  width: 18px;
-  height: 18px;
-  fill: currentColor;
-}
-
 .theme-toggle {
   margin-left: auto;
   font-size: 1.1rem;
   line-height: 1;
   padding: 6px 10px;
-}
-
-.header-discord + .theme-toggle {
-  margin-left: 4px;
 }
 
 /* ---- layout ---- */
@@ -139,18 +110,6 @@ body {
 @media (max-width: 760px) {
   .layout {
     grid-template-columns: minmax(0, 1fr);
-  }
-
-  /* drop the Discord button onto its own row so it doesn't crowd the nav */
-  .site-header .header-discord {
-    order: 5;
-    flex-basis: 100%;
-    margin-left: 0;
-    justify-content: center;
-  }
-
-  .header-discord + .theme-toggle {
-    margin-left: auto;
   }
 
   /* on mobile only the cat itself stays pinned while options scroll */
