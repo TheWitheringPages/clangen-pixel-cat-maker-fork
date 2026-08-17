@@ -328,6 +328,17 @@ input[type="color"] {
   width: 100%;
 }
 
+/* a pick list is tall, so its label and buttons sit at the top of the row
+   instead of floating in the middle of the list */
+.form-row:has(.multi-picker) {
+  align-items: start;
+}
+
+.form-row:has(.multi-picker) label,
+.form-row:has(.multi-picker) .field-buttons {
+  padding-top: 5px;
+}
+
 select:focus-visible,
 textarea:focus-visible,
 button:focus-visible,
@@ -348,6 +359,130 @@ select[multiple] option {
 
 select:disabled {
   opacity: 0.45;
+}
+
+/* ---- multi pick lists (white patches, accessories, scars) ---- */
+
+.multi-picker {
+  min-width: 0;
+}
+
+/* the select stays around as the value store, it just isn't the UI anymore */
+.multi-picker-native {
+  display: none;
+}
+
+.multi-picker-bar {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.multi-picker-search {
+  flex: 1;
+  min-width: 0;
+  color: var(--text);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 5px 8px;
+  font: inherit;
+  font-size: 0.9rem;
+}
+
+.multi-picker-clear {
+  padding: 5px 10px;
+  font-size: 0.85rem;
+}
+
+.multi-picker-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+
+.multi-picker-empty {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.multi-picker-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-text);
+  font-size: 0.8rem;
+}
+
+.multi-picker-chip:hover {
+  background: var(--accent);
+  filter: brightness(1.1);
+}
+
+.multi-picker-chip-x {
+  opacity: 0.75;
+}
+
+.multi-picker-list {
+  max-height: 210px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface-2);
+  padding: 4px;
+}
+
+.multi-picker-group-label {
+  position: sticky;
+  top: -4px;
+  padding: 4px 6px 2px;
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.multi-picker-option {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 3px 6px;
+  border-radius: 5px;
+  font-size: 0.88rem;
+  cursor: pointer;
+}
+
+.multi-picker-option:hover {
+  background: var(--border);
+}
+
+.multi-picker-option input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
+  flex: 0 0 auto;
+  cursor: pointer;
+}
+
+.multi-picker-option:has(input:checked) {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.multi-picker-option:has(input:disabled) {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.multi-picker-no-matches {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 0.82rem;
 }
 
 input[type="checkbox"] {

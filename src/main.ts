@@ -7,6 +7,7 @@ import errorImg from "./assets/error_placeholder.png";
 import CatData, { nameToSpritesname } from "./library/CatData";
 import { AdjustSlot } from "./library/types";
 import { initThemeToggle } from "./library/theme";
+import { createMultiPicker, refreshMultiPickers } from "./library/multiPicker";
 import peltInfo from "./assets/peltInfo.json";
 import spriteGroups from "./assets/spriteGroups.json";
 import {
@@ -82,6 +83,12 @@ const tortiePatternSelect = getElementByUniqueClassName(
 const lineartSelect = getElementByUniqueClassName(
   "lineart-select",
 ) as HTMLSelectElement;
+
+// the fields that can hold several picks at once get a checkbox list instead
+// of the ctrl-click-only native list box
+createMultiPicker(whitePatchesSelect, "white patches");
+createMultiPicker(accessorySelect, "accessories");
+createMultiPicker(scarSelect, "scars");
 
 const isTortieCheckbox = getElementByUniqueClassName(
   "tortie-checkbox",
@@ -388,6 +395,10 @@ function applyCompatibility() {
     const group = groupFor[v];
     return group === undefined || has(group);
   });
+
+  // every path that changes a select ends up here, so this is the one place
+  // the checkbox pickers need to resync from
+  refreshMultiPickers();
 }
 
 function redrawCat(applyURL: boolean = true) {
