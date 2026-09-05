@@ -14,7 +14,7 @@ addition to vanilla ClanGen content. The sprite roster is currently up to date w
 
 ## Features
 
-The site is split across a few pages, linked from the header nav:
+The site is split across a few pages, linked from the new header nav:
 
 * **Cat Maker** (`index.html`) — the main dollmaker. Pick sprite/life stage, pelt (vanilla,
   Ster, Silly, Dance, Mimi, Lifegen-merge, Sparkle, and more), colour, tortie layers,
