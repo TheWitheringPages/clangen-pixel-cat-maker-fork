@@ -7,6 +7,13 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 // https://vite.dev/config/
 export default defineConfig({
   base: "./",
+  server: {
+    // split sprites are ~80k+ files; watching them freezes / starves the
+    // dev server. They only change when build-sprites.js is re-run.
+    watch: {
+      ignored: ["**/public/sprites/split/**"],
+    },
+  },
   build: {
     rollupOptions: {
       input: {

@@ -91,10 +91,10 @@ body {
 
 .layout {
   display: grid;
-  grid-template-columns: minmax(260px, 330px) minmax(0, 1fr);
+  grid-template-columns: minmax(300px, 380px) minmax(0, 1fr);
   gap: 18px;
   align-items: start;
-  max-width: 1100px;
+  max-width: 1280px;
   margin: 0 auto;
   padding: 18px 16px 40px;
 }
@@ -105,6 +105,16 @@ body {
   display: flex;
   flex-direction: column;
   gap: 14px;
+  max-height: calc(100vh - 74px);
+  overflow-y: auto;
+  padding-bottom: 8px;
+}
+
+.controls-shell {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 @media (max-width: 760px) {
@@ -112,9 +122,10 @@ body {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  /* on mobile only the cat itself stays pinned while options scroll */
   .preview-panel {
     position: static;
+    max-height: none;
+    overflow: visible;
   }
 
   .preview-card {
@@ -124,7 +135,28 @@ body {
   }
 
   .cat-sprite-img {
-    max-width: 170px;
+    max-width: 200px;
+  }
+
+  .mobile-mode-bar {
+    display: flex !important;
+    gap: 8px;
+  }
+
+  body.is-guided .maker-tabs {
+    display: none;
+  }
+
+  body.is-guided .guided-nav {
+    display: flex !important;
+  }
+
+  body.is-guided .tab-panel:not(.is-guided-step) {
+    display: none !important;
+  }
+
+  body.is-guided .tab-panel.is-guided-step {
+    display: block !important;
   }
 }
 
@@ -153,7 +185,7 @@ form details {
 }
 
 .preview-card {
-  padding: 10px;
+  padding: 14px;
   text-align: center;
   background:
     repeating-conic-gradient(
@@ -161,6 +193,11 @@ form details {
       var(--checker-b) 0% 50%
     )
     0 0 / 20px 20px;
+}
+
+.cat-sprite-img {
+  max-width: 100%;
+  height: auto;
 }
 
 .palette-row {
@@ -729,6 +766,233 @@ details > *:last-child {
   padding: 4px 2px;
 }
 
+/* ---- preview chrome (exclusive panels) ---- */
+
+.preview-chrome {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.chrome-tabs,
+.maker-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chrome-tab,
+.maker-tab,
+.mobile-mode-toggle,
+.guided-back,
+.guided-next {
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 7px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.chrome-tab.is-active,
+.maker-tab.is-active,
+.mobile-mode-toggle.is-active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-text);
+}
+
+.chrome-panel[hidden] {
+  display: none;
+}
+
+/* ---- maker tabs + accordions ---- */
+
+.tab-panel[hidden] {
+  display: none;
+}
+
+.tab-panel-head {
+  margin-bottom: 10px;
+}
+
+.tab-blurb {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.control-accordion {
+  margin: 0 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-2);
+  padding: 0 12px 10px;
+}
+
+.control-accordion > summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.9rem;
+  padding: 10px 0;
+  list-style: none;
+}
+
+.control-accordion > summary::-webkit-details-marker {
+  display: none;
+}
+
+.control-accordion > summary::before {
+  content: "▸ ";
+  color: var(--muted);
+}
+
+.control-accordion[open] > summary::before {
+  content: "▾ ";
+}
+
+.accordion-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.category-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.mobile-mode-bar,
+.guided-nav {
+  display: none;
+}
+
+.guided-nav {
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.guided-step-label {
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+/* ---- searchable single pickers ---- */
+
+.searchable-picker {
+  min-width: 0;
+}
+
+.searchable-picker-native {
+  display: none;
+}
+
+.searchable-picker-current {
+  margin-bottom: 6px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.searchable-picker-bar {
+  margin-bottom: 6px;
+}
+
+.searchable-picker-search {
+  width: 100%;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 5px 8px;
+  font: inherit;
+  font-size: 0.9rem;
+}
+
+.searchable-picker-list {
+  max-height: 210px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface);
+  padding: 4px;
+}
+
+.searchable-picker-group-label {
+  position: sticky;
+  top: -4px;
+  padding: 4px 6px 2px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.searchable-picker-option {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 5px 8px;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.88rem;
+  cursor: pointer;
+}
+
+.searchable-picker-option:hover {
+  background: var(--border);
+}
+
+.searchable-picker-option.selected {
+  color: var(--accent);
+  font-weight: 600;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.searchable-picker-option[disabled] {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.searchable-picker.is-disabled {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.searchable-picker-no-matches {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.form-row:has(.searchable-picker) {
+  align-items: start;
+}
+
+.form-row:has(.searchable-picker) label,
+.form-row:has(.searchable-picker) .field-buttons {
+  padding-top: 5px;
+}
+
 /* ---- misc ---- */
 
 .hidden {
@@ -737,7 +1001,7 @@ details > *:last-child {
 
 .info,
 footer {
-  max-width: 1100px;
+  max-width: 1280px;
   margin: 0 auto;
   padding: 0 16px;
   color: var(--muted);
@@ -754,4 +1018,65 @@ footer {
   margin-top: 18px;
   padding-top: 10px;
   padding-bottom: 24px;
+}
+
+/* Mobile picker layout — must come after base .form-row rules so it wins */
+@media (max-width: 760px) {
+  .form-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "label buttons"
+      "control control";
+  }
+
+  .form-row > label {
+    grid-area: label;
+  }
+
+  .form-row > .field-buttons {
+    grid-area: buttons;
+    justify-self: end;
+  }
+
+  .form-row > :not(label):not(.field-buttons) {
+    grid-area: control;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .searchable-picker,
+  .multi-picker {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .searchable-picker-current,
+  .searchable-picker-list,
+  .searchable-picker-search,
+  .multi-picker-list,
+  .multi-picker-search,
+  .multi-picker-chips {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .searchable-picker-option,
+  .multi-picker-option {
+    overflow-wrap: anywhere;
+    white-space: normal;
+  }
+
+  .accordion-body {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .controls-shell,
+  .tab-panel,
+  .control-accordion {
+    min-width: 0;
+    max-width: 100%;
+  }
 }

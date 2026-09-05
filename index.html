@@ -59,101 +59,162 @@
                 type="button"
                 title="Stop comparing"
               >
-                ✕
-              </button>
+                �?              </button>
             </div>
           </div>
         </div>
-        <div class="card">
-          <div class="form-row">
-            <label>Scale</label>
-            <select class="zoom-level">
-              <option value="1">1x</option>
-              <option value="2">2x</option>
-              <option selected value="3">3x</option>
-              <option value="4">4x</option>
-            </select>
+
+        <div class="card preview-chrome">
+          <div class="chrome-tabs" role="tablist" aria-label="Preview tools">
+            <button type="button" class="chrome-tab is-active" data-chrome="view" role="tab" aria-selected="true" title="Display and compare options">View</button>
+            <button type="button" class="chrome-tab" data-chrome="downloads" role="tab" aria-selected="false" title="Save images">Downloads</button>
+            <button type="button" class="chrome-tab" data-chrome="share" role="tab" aria-selected="false" title="Share this cat">Share</button>
+            <button type="button" class="chrome-tab" data-chrome="randomize" role="tab" aria-selected="false" title="Randomize the whole cat">Randomize</button>
           </div>
-          <div class="form-row">
-            <label>BG Colour</label>
-            <select class="bg-color-select">
-              <option value="rgb(0 0 0 / 0)">Transparent</option>
-              <option value="rgb(255 255 255)">White</option>
-              <option value="rgb(0 0 0)">Black</option>
-              <option value="rgb(0 255 0)">Lime Green</option>
-              <option value="rgb(206 194 168)">ClanGen Light</option>
-              <option value="rgb(57 50 36)">ClanGen Dark</option>
-              <option value="rgb(39 45 79)">Starry Blue</option>
-              <option value="rgb(158 151 170)">Unknown Grey</option>
-              <option value="rgb(42 17 13)">Starless Red</option>
-              <option value="custom">Custom…</option>
-            </select>
-            <input
-              type="color"
-              class="bg-custom-colour hidden"
-              value="#7f7f7f"
-            />
-          </div>
-          <div class="form-row">
-            <label>Shading</label>
-            <input class="shading-checkbox" type="checkbox" />
-          </div>
-          <div class="form-row">
-            <label>Reverse</label>
-            <input class="reverse-checkbox" type="checkbox" />
-          </div>
-          <div class="form-row">
-            <label>Compare with</label>
-            <select class="compare-select">
-              <option value="">None</option>
-            </select>
-          </div>
-          <div class="form-row">
-            <label title="Download the PNG without the background colour">
-              Transparent PNG
-            </label>
-            <input class="png-transparent-checkbox" type="checkbox" />
-          </div>
-          <div class="button-column">
-            <div class="undo-redo-row">
-              <button class="undo-button" type="button" title="Undo the last change (Ctrl+Z)" disabled>
-                ↩ Undo
-              </button>
-              <button class="redo-button" type="button" title="Redo (Ctrl+Y)" disabled>
-                Redo ↪
+
+          <div class="chrome-panel is-active" data-chrome-panel="view">
+            <div class="form-row preview-chrome-native">
+              <label title="How big the preview is">Scale</label>
+              <select class="zoom-level">
+                <option value="1">1x</option>
+                <option value="2">2x</option>
+                <option value="3">3x</option>
+                <option selected value="4">4x</option>
+              </select>
+            </div>
+            <div class="form-row preview-chrome-native">
+              <label title="Background behind the sprite">BG Colour</label>
+              <select class="bg-color-select">
+                <option value="rgb(0 0 0 / 0)">Transparent</option>
+                <option value="rgb(255 255 255)">White</option>
+                <option value="rgb(0 0 0)">Black</option>
+                <option value="rgb(0 255 0)">Lime Green</option>
+                <option value="rgb(206 194 168)">ClanGen Light</option>
+                <option value="rgb(57 50 36)">ClanGen Dark</option>
+                <option value="rgb(39 45 79)">Starry Blue</option>
+                <option value="rgb(158 151 170)">Unknown Grey</option>
+                <option value="rgb(42 17 13)">Starless Red</option>
+                <option value="custom">Custom�?/option>
+              </select>
+              <input
+                type="color"
+                class="bg-custom-colour hidden"
+                value="#7f7f7f"
+              />
+            </div>
+            <div class="form-row">
+              <label title="Soft shading on the sprite">Shading</label>
+              <input class="shading-checkbox" type="checkbox" />
+            </div>
+            <div class="form-row">
+              <label title="Flip the cat left to right">Reverse</label>
+              <input class="reverse-checkbox" type="checkbox" />
+            </div>
+            <div class="form-row preview-chrome-native">
+              <label title="Overlay another saved cat">Compare with</label>
+              <select class="compare-select">
+                <option value="">None</option>
+              </select>
+            </div>
+            <div class="form-row">
+              <label title="Download the PNG without the background colour">
+                Transparent PNG
+              </label>
+              <input class="png-transparent-checkbox" type="checkbox" />
+            </div>
+            <div class="button-column">
+              <button class="palette-button" type="button" title="Show the colours used in this sprite">
+                Show Palette
               </button>
             </div>
-            <button class="randomize-all-button" type="button">
-              🎲 Randomize
-            </button>
-            <button class="download-png-button" type="button">
-              Download PNG
-            </button>
-            <button class="age-strip-button" type="button" title="One image of this cat at every life stage">
-              Download Age Strip
-            </button>
-            <button class="character-card-button" type="button" title="A shareable card with name and palette">
-              Download Character Card
-            </button>
-            <button class="copy-card-button" type="button" title="Copy the character card image to the clipboard">
-              Copy Card Image
-            </button>
-            <button class="palette-button" type="button" title="Show the colours used in this sprite">
-              Show Palette
-            </button>
-            <button class="copy-url-button" type="button">Copy this cat's URL</button>
-            <button class="add-parent-button" type="button">
-              Use as offspring parent…
-            </button>
+          </div>
+
+          <div class="chrome-panel" data-chrome-panel="downloads" hidden>
+            <div class="button-column">
+              <div class="undo-redo-row">
+                <button class="undo-button" type="button" title="Undo the last change (Ctrl+Z)" disabled>
+                  �?Undo
+                </button>
+                <button class="redo-button" type="button" title="Redo (Ctrl+Y)" disabled>
+                  Redo �?                </button>
+              </div>
+              <button class="download-png-button" type="button">
+                Download PNG
+              </button>
+              <button class="age-strip-button" type="button" title="One image of this cat at every life stage">
+                Download Age Strip
+              </button>
+              <button class="character-card-button" type="button" title="A shareable card with name and palette">
+                Download Character Card
+              </button>
+              <button class="copy-card-button" type="button" title="Copy the character card image to the clipboard">
+                Copy Card Image
+              </button>
+            </div>
+          </div>
+
+          <div class="chrome-panel" data-chrome-panel="share" hidden>
+            <div class="button-column">
+              <button class="copy-url-button" type="button">Copy this cat's URL</button>
+              <button class="add-parent-button" type="button">
+                Use as offspring parent�?              </button>
+            </div>
+          </div>
+
+          <div class="chrome-panel" data-chrome-panel="randomize" hidden>
+            <div class="button-column">
+              <button class="randomize-all-button" type="button">
+                🎲 Randomize
+              </button>
+            </div>
           </div>
         </div>
       </aside>
 
-      <form class="controls">
-      <section class="card">
-        <h2>Body &amp; Pelt</h2>
-      <div class="form-row">
-        <label>Sprite</label>
+      <div class="controls-shell">
+        <div class="mobile-mode-bar">
+          <button type="button" class="mobile-mode-toggle" data-mode="guided">
+            Guided
+          </button>
+          <button type="button" class="mobile-mode-toggle" data-mode="full">
+            Full view
+          </button>
+        </div>
+
+        <div class="guided-nav">
+          <button type="button" class="guided-back" disabled>Back</button>
+          <span class="guided-step-label">Body</span>
+          <button type="button" class="guided-next">Next</button>
+        </div>
+
+        <div class="maker-tabs" role="tablist" aria-label="Cat options">
+          <button type="button" class="maker-tab is-active" role="tab" id="tab-body" data-tab="body" aria-selected="true" aria-controls="panel-body" title="Pose, coat, skin, and outline">Body</button>
+          <button type="button" class="maker-tab" role="tab" id="tab-face" data-tab="face" aria-selected="false" aria-controls="panel-face" title="Eye colours">Face</button>
+          <button type="button" class="maker-tab" role="tab" id="tab-markings" data-tab="markings" aria-selected="false" aria-controls="panel-markings" title="White and pale patches">Markings</button>
+          <button type="button" class="maker-tab" role="tab" id="tab-additional" data-tab="additional" aria-selected="false" aria-controls="panel-additional" title="Items and scars on top of the cat">Additional</button>
+          <button type="button" class="maker-tab" role="tab" id="tab-studio" data-tab="studio" aria-selected="false" aria-controls="panel-studio" title="Fine-tune, paint, save, and data">Studio</button>
+        </div>
+
+        <form class="controls">
+
+      <section
+        class="tab-panel card"
+        id="panel-body"
+        role="tabpanel"
+        aria-labelledby="tab-body"
+        data-tab="body"
+        
+      >
+        <div class="tab-panel-head">
+          <h2 title="Pose, coat, skin, and outline">Body</h2>
+          <p class="tab-blurb">Pose, coat, skin, and outline</p>
+        </div>
+        
+        <details class="control-accordion" data-accordion="pose">
+          <summary title="Age and pose">Sprite</summary>
+          <div class="accordion-body">
+            <div class="form-row">
+        <label title="Age and pose">Sprite</label>
         <select class="sprite-no-select">
           <option value="0">Kitten (0)</option>
           <option value="1">Kitten (1)</option>
@@ -186,8 +247,14 @@
           🔀
         </button>
       </div>
-      <div class="form-row">
-        <label>Pelt</label>
+          </div>
+        </details>
+
+        <details class="control-accordion" data-accordion="pattern">
+          <summary title="Coat pattern">Pelt</summary>
+          <div class="accordion-body">
+            <div class="form-row">
+        <label title="Coat pattern">Pelt</label>
         <select class="pelt-name-select">
           <optgroup label="Vanilla Pelts">
           <option>SingleColour</option>
@@ -327,9 +394,14 @@
           🔀
         </button>
       </div>
+          </div>
+        </details>
 
-      <div class="form-row">
-        <label>Colour</label>
+        <details class="control-accordion" data-accordion="color">
+          <summary title="Main coat colour">Color</summary>
+          <div class="accordion-body">
+            <div class="form-row">
+        <label title="Main coat colour">Color</label>
         <select class="colour-select">
           <option>CREAM</option>
           <option>PALEGINGER</option>
@@ -380,18 +452,122 @@
         </select>
         <button class="random-button" data-select-id="colour-select">🔀</button>
       </div>
+          </div>
+        </details>
 
-      </section>
+        <details class="control-accordion" data-accordion="tint">
+          <summary title="Soft wash over the whole coat">Tint</summary>
+          <div class="accordion-body">
+            <div class="form-row">
+        <label title="Soft wash over the whole coat">Tint</label>
+        <select class="tint-select">
+          <option>pink</option>
+          <option>gray</option>
+          <option>red</option>
+          <option>orange</option>
+          <option>none</option>
+          <option>yellow</option>
+          <option>purple</option>
+          <option>blush</option>
+          <option>rosy</option>
+          <option>redwood</option>
+          <option>maroon</option>
+          <option>sandy</option>
+          <option>beige</option>
+          <option>coral</option>
+          <option>tan</option>
+          <option>cream</option>
+          <option>creamytan</option>
+          <option>yolk</option>
+          <option>gold</option>
+          <option>rust</option>
+          <option>lightpurple</option>
+          <option>darkpurple</option>
+          <option>bananaone</option>
+          <option>bananatwo</option>
+          <option>sunny</option>
+          <option>peach</option>
+          <option>salmon</option>
+          <option>buttercup</option>
+          <option>fall</option>
+          <option>blue</option>
+          <option>purple</option>
+          <option>black</option>
+          <option>willow</option>
+          <option>lilac</option>
+          <option>plum</option>
+          <option>cadet</option>
+          <option>cobalt</option>
+          <option>bluesky</option>
+          <option>browngray</option>
+          <option>grapefruit</option>
+          <option>lightpink</option>
+          <option>green</option>
+          <option>flower</option>
+          <option>kiwi</option>
+          <option>dullgreen</option>
+          <option>olive</option>
+          <option>sky</option>
+          <option>lightblue</option>
+          <option>yellow</option>
+          <option>tan</option>
+          <option>cream</option>
+          <option>creamytan</option>
+          <option>bluesky</option>
+          <option>browngray</option>
+          <option>blue</option>
+          <option>black</option>
+          <option>bluegray</option>
+          <option>cadet</option>
+          <option>flint</option>
+          <option>storm</option>
+          <option>darkpurple</option>
+          <option>cobalt</option>
+          <option>steel</option>
+          <option>ebony</option>
+          <option>sunrise</option>
+          <option>lightorange</option>
+          <option>periwinkle</option>
+          <option>navy</option>
+          <option>graygreen</option>
+          <option>yellow</option>
+          <option>purple</option>
+          <option>black</option>
+          <option>flint</option>
+          <option>acacia</option>
+          <option>bronze</option>
+          <option>sooty</option>
+          <option>plum</option>
+          <option>lilac</option>
+          <option>cadet</option>
+          <option>cobalt</option>
+          <option>bluegray</option>
+          <option>darkpurple</option>
+          <option>ebony</option>
+          <option>sunrise</option>
+          <option>pinkgray</option>
+          <option>flower</option>
+          <option>sunflower</option>
+          <option>wood</option>
+          <option>dust</option>
+          <option>dilute</option>
+          <option>warmdilute</option>
+          <option>cooldilute</option>
+        </select>
+        <button class="random-button" data-select-id="tint-select">🔀</button>
+      </div>
+          </div>
+        </details>
 
-      <section class="card">
-        <h2>Tortie</h2>
-      <div class="form-row">
-        <label>Tortie?</label>
+        <details class="control-accordion" data-accordion="tortie">
+          <summary title="Second colour in patch shapes (tortoiseshell-style)">Tortie</summary>
+          <div class="accordion-body">
+            <div class="form-row">
+        <label title="Second colour in patch shapes (tortoiseshell-style)">Tortie?</label>
         <input class="tortie-checkbox" type="checkbox" />
       </div>
-
-      <div class="form-row">
-        <label>Tortie Mask</label>
+<div class="form-row">
+        <label title="Where the second colour goes">Tortie Mask</label>
         <select disabled class="tortie-mask-select">
           <option>ONE</option>
           <option>TWO</option>
@@ -685,9 +861,8 @@
           🔀
         </button>
       </div>
-
-      <div class="form-row">
-        <label>Tortie Pelt</label>
+<div class="form-row">
+        <label title="Pattern used inside the tortie patches">Tortie Pelt</label>
         <select disabled class="tortie-pattern-select">
           <optgroup label="Vanilla Pelts">
           <option>SingleColour</option>
@@ -827,9 +1002,8 @@
           🔀
         </button>
       </div>
-
-      <div class="form-row">
-        <label>Tortie Colour</label>
+<div class="form-row">
+        <label title="Colour used inside the tortie patches">Tortie Colour</label>
         <select disabled class="tortie-colour-select">
           <option>CREAM</option>
           <option>PALEGINGER</option>
@@ -882,112 +1056,87 @@
           🔀
         </button>
       </div>
+          </div>
+        </details>
 
+        <details class="control-accordion" data-accordion="skin">
+          <summary title="Nose, inner ear, and paw skin">Skin</summary>
+          <div class="accordion-body">
+            <div class="form-row">
+        <label title="Nose, inner ear, and paw skin">Skin</label>
+        <select class="skin-colour-select">
+          <option>BLACK</option>
+          <option>PINK</option>
+          <option>DARKBROWN</option>
+          <option>BROWN</option>
+          <option>LIGHTBROWN</option>
+          <option>DARK</option>
+          <option>DARKGREY</option>
+          <option>GREY</option>
+          <option>DARKSALMON</option>
+          <option>SALMON</option>
+          <option>PEACH</option>
+          <option>DARKMARBLED</option>
+          <option>MARBLED</option>
+          <option>LIGHTMARBLED</option>
+          <option>DARKBLUE</option>
+          <option>BLUE</option>
+          <option>LIGHTBLUE</option>
+          <option>RED</option>
+        </select>
+        <button class="random-button" data-select-id="skin-colour-select">
+          🔀
+        </button>
+      </div>
+          </div>
+        </details>
+
+        <details class="control-accordion" data-accordion="lineart">
+          <summary title="Living, dead, or dark forest outline">Lineart</summary>
+          <div class="accordion-body">
+            <div class="form-row">
+        <label title="Living, dead, or dark forest outline">Lineart</label>
+        <select class="lineart-select">
+          <option value="regular">Regular</option>
+          <option value="dead">Dead</option>
+          <option value="dark forest">Dark Forest</option>
+          <option value="aprilfools-regular">Regular (April Fools')</option>
+          <option value="aprilfools-dead">Dead (April Fools')</option>
+          <option value="aprilfools-dark forest">
+            Dark Forest (April Fools')
+          </option>
+        </select>
+      </div>
+          </div>
+        </details>
+        <div class="category-actions">
+          <button type="button" class="category-randomize-button" data-category="body">
+            Randomize category
+          </button>
+          <button type="button" class="category-reset-button" data-category="body">
+            Reset category
+          </button>
+        </div>
       </section>
 
-      <section class="card">
-        <h2>Colours &amp; Eyes</h2>
-      <div class="form-row">
-        <label>Tint</label>
-        <select class="tint-select">
-          <option>pink</option>
-          <option>gray</option>
-          <option>red</option>
-          <option>orange</option>
-          <option>none</option>
-          <option>yellow</option>
-          <option>purple</option>
-          <option>blush</option>
-          <option>rosy</option>
-          <option>redwood</option>
-          <option>maroon</option>
-          <option>sandy</option>
-          <option>beige</option>
-          <option>coral</option>
-          <option>tan</option>
-          <option>cream</option>
-          <option>creamytan</option>
-          <option>yolk</option>
-          <option>gold</option>
-          <option>rust</option>
-          <option>lightpurple</option>
-          <option>darkpurple</option>
-          <option>bananaone</option>
-          <option>bananatwo</option>
-          <option>sunny</option>
-          <option>peach</option>
-          <option>salmon</option>
-          <option>buttercup</option>
-          <option>fall</option>
-          <option>blue</option>
-          <option>purple</option>
-          <option>black</option>
-          <option>willow</option>
-          <option>lilac</option>
-          <option>plum</option>
-          <option>cadet</option>
-          <option>cobalt</option>
-          <option>bluesky</option>
-          <option>browngray</option>
-          <option>grapefruit</option>
-          <option>lightpink</option>
-          <option>green</option>
-          <option>flower</option>
-          <option>kiwi</option>
-          <option>dullgreen</option>
-          <option>olive</option>
-          <option>sky</option>
-          <option>lightblue</option>
-          <option>yellow</option>
-          <option>tan</option>
-          <option>cream</option>
-          <option>creamytan</option>
-          <option>bluesky</option>
-          <option>browngray</option>
-          <option>blue</option>
-          <option>black</option>
-          <option>bluegray</option>
-          <option>cadet</option>
-          <option>flint</option>
-          <option>storm</option>
-          <option>darkpurple</option>
-          <option>cobalt</option>
-          <option>steel</option>
-          <option>ebony</option>
-          <option>sunrise</option>
-          <option>lightorange</option>
-          <option>periwinkle</option>
-          <option>navy</option>
-          <option>graygreen</option>
-          <option>yellow</option>
-          <option>purple</option>
-          <option>black</option>
-          <option>flint</option>
-          <option>acacia</option>
-          <option>bronze</option>
-          <option>sooty</option>
-          <option>plum</option>
-          <option>lilac</option>
-          <option>cadet</option>
-          <option>cobalt</option>
-          <option>bluegray</option>
-          <option>darkpurple</option>
-          <option>ebony</option>
-          <option>sunrise</option>
-          <option>pinkgray</option>
-          <option>flower</option>
-          <option>sunflower</option>
-          <option>wood</option>
-          <option>dust</option>
-          <option>dilute</option>
-          <option>warmdilute</option>
-          <option>cooldilute</option>
-        </select>
-        <button class="random-button" data-select-id="tint-select">🔀</button>
-      </div>
-
-      <div class="form-row">
-        <label>Eye Colour</label>
+      <section
+        class="tab-panel card"
+        id="panel-face"
+        role="tabpanel"
+        aria-labelledby="tab-face"
+        data-tab="face"
+        hidden
+      >
+        <div class="tab-panel-head">
+          <h2 title="Eye colours">Face</h2>
+          <p class="tab-blurb">Eye colours</p>
+        </div>
+        
+        <details class="control-accordion" data-accordion="eye">
+          <summary title="First eye colour">Eye</summary>
+          <div class="accordion-body">
+            <div class="form-row">
+        <label title="First eye colour">Eye</label>
         <select class="eye-colour-select">
           <option>YELLOW</option>
           <option>AMBER</option>
@@ -1175,9 +1324,14 @@
           🔀
         </button>
       </div>
+          </div>
+        </details>
 
-      <div class="form-row">
-        <label>Eye Colour 2</label>
+        <details class="control-accordion" data-accordion="eye2">
+          <summary title="Second eye colour if different">Eye 2</summary>
+          <div class="accordion-body">
+            <div class="form-row">
+        <label title="Second eye colour if different">Eye 2</label>
         <select class="eye-colour2-select">
           <option></option>
           <option>YELLOW</option>
@@ -1366,40 +1520,36 @@
           🔀
         </button>
       </div>
-
-      <div class="form-row">
-        <label>Skin</label>
-        <select class="skin-colour-select">
-          <option>BLACK</option>
-          <option>PINK</option>
-          <option>DARKBROWN</option>
-          <option>BROWN</option>
-          <option>LIGHTBROWN</option>
-          <option>DARK</option>
-          <option>DARKGREY</option>
-          <option>GREY</option>
-          <option>DARKSALMON</option>
-          <option>SALMON</option>
-          <option>PEACH</option>
-          <option>DARKMARBLED</option>
-          <option>MARBLED</option>
-          <option>LIGHTMARBLED</option>
-          <option>DARKBLUE</option>
-          <option>BLUE</option>
-          <option>LIGHTBLUE</option>
-          <option>RED</option>
-        </select>
-        <button class="random-button" data-select-id="skin-colour-select">
-          🔀
-        </button>
-      </div>
-
+          </div>
+        </details>
+        <div class="category-actions">
+          <button type="button" class="category-randomize-button" data-category="face">
+            Randomize category
+          </button>
+          <button type="button" class="category-reset-button" data-category="face">
+            Reset category
+          </button>
+        </div>
       </section>
 
-      <section class="card">
-        <h2>White Markings</h2>
-      <div class="form-row">
-        <label>White Patches</label>
+      <section
+        class="tab-panel card"
+        id="panel-markings"
+        role="tabpanel"
+        aria-labelledby="tab-markings"
+        data-tab="markings"
+        hidden
+      >
+        <div class="tab-panel-head">
+          <h2 title="White and pale patches">Markings</h2>
+          <p class="tab-blurb">White and pale patches</p>
+        </div>
+        
+        <details class="control-accordion" data-accordion="white">
+          <summary title="White markings on the coat">White Patches</summary>
+          <div class="accordion-body">
+            <div class="form-row">
+        <label title="White markings on the coat">White Patches</label>
         <select class="white-patches-select" multiple>
           <option></option>
           <optgroup label="little_white">
@@ -1652,9 +1802,14 @@
           🔀
         </button>
       </div>
+          </div>
+        </details>
 
-      <div class="form-row">
-        <label>Points</label>
+        <details class="control-accordion" data-accordion="points">
+          <summary title="Darker points on face, legs, and tail">Points</summary>
+          <div class="accordion-body">
+            <div class="form-row">
+        <label title="Darker points on face, legs, and tail">Points</label>
         <select class="points-select">
           <option></option>
           <option>COLOURPOINT</option>
@@ -1671,9 +1826,14 @@
         </select>
         <button class="random-button" data-select-id="points-select">🔀</button>
       </div>
+          </div>
+        </details>
 
-      <div class="form-row">
-        <label>White Patches Tint</label>
+        <details class="control-accordion" data-accordion="white-tint">
+          <summary title="Colour wash on white areas only">White Tint</summary>
+          <div class="accordion-body">
+            <div class="form-row">
+        <label title="Colour wash on white areas only">White Tint</label>
         <select class="white-patches-tint-select">
           <option>none</option>
           <option>darkcream</option>
@@ -1745,9 +1905,14 @@
           🔀
         </button>
       </div>
+          </div>
+        </details>
 
-      <div class="form-row">
-        <label>Vitiligo</label>
+        <details class="control-accordion" data-accordion="vitiligo">
+          <summary title="Pale blotches">Vitiligo</summary>
+          <div class="accordion-body">
+            <div class="form-row">
+        <label title="Pale blotches">Vitiligo</label>
         <select class="vitiligo-select">
           <option></option>
           <option>VITILIGO</option>
@@ -1772,13 +1937,36 @@
           🔀
         </button>
       </div>
-
+          </div>
+        </details>
+        <div class="category-actions">
+          <button type="button" class="category-randomize-button" data-category="markings">
+            Randomize category
+          </button>
+          <button type="button" class="category-reset-button" data-category="markings">
+            Reset category
+          </button>
+        </div>
       </section>
 
-      <section class="card">
-        <h2>Accessories &amp; Extras</h2>
-      <div class="form-row">
-        <label>Accessory</label>
+      <section
+        class="tab-panel card"
+        id="panel-additional"
+        role="tabpanel"
+        aria-labelledby="tab-additional"
+        data-tab="additional"
+        hidden
+      >
+        <div class="tab-panel-head">
+          <h2 title="Items and scars on top of the cat">Additional</h2>
+          <p class="tab-blurb">Items and scars on top of the cat</p>
+        </div>
+        
+        <details class="control-accordion" data-accordion="accessories">
+          <summary title="Things the cat is wearing or holding">Accessories</summary>
+          <div class="accordion-body">
+            <div class="form-row">
+        <label title="Things the cat is wearing or holding">Accessories</label>
         <select class="accessory-select" multiple>
           <option></option>
           <optgroup label="plant_accessories">
@@ -2285,9 +2473,14 @@
           🔀
         </button>
       </div>
+          </div>
+        </details>
 
-      <div class="form-row">
-        <label>Scar</label>
+        <details class="control-accordion" data-accordion="scars">
+          <summary title="Injury marks">Scars</summary>
+          <div class="accordion-body">
+            <div class="form-row">
+        <label title="Injury marks">Scars</label>
         <select class="scar-select" multiple>
           <option></option>
           <optgroup label="Animal Scars (scars1)">
@@ -2352,24 +2545,32 @@
         </select>
         <button class="random-button" data-select-id="scar-select">🔀</button>
       </div>
-
-      <div class="form-row">
-        <label>Lineart</label>
-        <select class="lineart-select">
-          <option value="regular">Regular</option>
-          <option value="dead">Dead</option>
-          <option value="dark forest">Dark Forest</option>
-          <option value="aprilfools-regular">Regular (April Fools')</option>
-          <option value="aprilfools-dead">Dead (April Fools')</option>
-          <option value="aprilfools-dark forest">
-            Dark Forest (April Fools')
-          </option>
-        </select>
-      </div>
+          </div>
+        </details>
+        <div class="category-actions">
+          <button type="button" class="category-randomize-button" data-category="additional">
+            Randomize category
+          </button>
+          <button type="button" class="category-reset-button" data-category="additional">
+            Reset category
+          </button>
+        </div>
       </section>
 
-      <details class="adjust-details">
-        <summary>Colour Adjustments (optional)</summary>
+      <section
+        class="tab-panel card"
+        id="panel-studio"
+        role="tabpanel"
+        aria-labelledby="tab-studio"
+        data-tab="studio"
+        hidden
+      >
+        <div class="tab-panel-head">
+          <h2 title="Fine-tune, paint, save, and data">Studio</h2>
+          <p class="tab-blurb">Fine-tune, paint, save, and data</p>
+        </div>
+        <details class="adjust-details control-accordion" data-accordion="color-adjust">
+        <summary title="Shift a layer's colours after the sprite is built">Color Adjust</summary>
         <p class="section-note">
           Post-processing applied over the chosen sprite colours. Pick a
           layer, then shift its hue/saturation/lightness or blend it towards
@@ -2415,9 +2616,8 @@
           <button class="adjust-reset-all-button">Reset all layers</button>
         </div>
       </details>
-
-      <details class="paint-details">
-        <summary>Pixel Paint (optional)</summary>
+<details class="paint-details control-accordion" data-accordion="pixel-paint">
+        <summary title="Draw extra pixels by hand">Pixel Paint</summary>
         <p class="section-note">
           Hand-drawn pixels go over everything else and flip together with
           the cat. They're placed on the 50&times;50 sprite, so switching
@@ -2482,13 +2682,12 @@
           touch
         </p>
         <div>
-          <button class="paint-undo-button" disabled>↩ Undo</button>
+          <button class="paint-undo-button" disabled>�?Undo</button>
           <button class="paint-clear-button">Clear painted pixels</button>
         </div>
       </details>
-
-      <details class="saved-cats-details">
-        <summary>Saved Cats (stored in this browser)</summary>
+<details class="saved-cats-details control-accordion" data-accordion="saved-cats">
+        <summary title="Cats stored in this browser">Saved Cats</summary>
         <div class="form-row">
           <label>Search</label>
           <input
@@ -2510,15 +2709,15 @@
         <div>
           <button class="rename-cat-button">Rename</button>
           <button class="move-cat-up-button" title="Move up in the list">
-            ▲ Up
+            �?Up
           </button>
           <button class="move-cat-down-button" title="Move down in the list">
-            ▼ Down
+            �?Down
           </button>
         </div>
 
         <label class="notes-label">
-          Notes for the selected cat (personality, backstory, anything —
+          Notes for the selected cat (personality, backstory, anything -
           saved with your gallery):
         </label>
         <textarea
@@ -2554,22 +2753,31 @@
         </div>
       </details>
 
-      <section class="card sharecode-div">
-        <h2>Appearance Data</h2>
-        <p class="section-note">
-          Does not contain all data; use only as reference.
-        </p>
-        <textarea readonly rows="10" class="sharecode"></textarea>
-        <div>
-          <button class="import-json-button" type="button">
-            Import JSON data
+      <details class="sharecode-details control-accordion" data-accordion="appearance-data">
+        <summary title="Text for sharing or import">Appearance Data</summary>
+        <div class="accordion-body">
+          <p class="section-note">
+            Does not contain all data; use only as reference.
+          </p>
+          <textarea readonly rows="10" class="sharecode"></textarea>
+          <div>
+            <button class="import-json-button" type="button">
+              Import JSON data
+            </button>
+          </div>
+        </div>
+      </details>
+        <div class="category-actions">
+          <button type="button" class="category-reset-button" data-category="studio">
+            Reset category
           </button>
         </div>
       </section>
-      </form>
+        </form>
+      </div>
     </main>
 
-    <div class="info">
+<div class="info">
       <p>
         Sprites are by the ClanGen team and are licensed under
         <a href="https://creativecommons.org/licenses/by-nc/4.0/"

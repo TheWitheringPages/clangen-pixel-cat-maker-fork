@@ -8,6 +8,15 @@ import CatData, { nameToSpritesname } from "./library/CatData";
 import { AdjustSlot } from "./library/types";
 import { initThemeToggle } from "./library/theme";
 import { createMultiPicker, refreshMultiPickers } from "./library/multiPicker";
+import {
+  initSearchablePickers,
+  refreshSearchablePickers,
+} from "./library/searchablePicker";
+import {
+  initMakerShell,
+  readMakerDraft,
+  writeMakerDraft,
+} from "./library/makerUI";
 import peltInfo from "./assets/peltInfo.json";
 import spriteGroups from "./assets/spriteGroups.json";
 import {
@@ -89,6 +98,7 @@ const lineartSelect = getElementByUniqueClassName(
 createMultiPicker(whitePatchesSelect, "white patches");
 createMultiPicker(accessorySelect, "accessories");
 createMultiPicker(scarSelect, "scars");
+initSearchablePickers(document.querySelector("form.controls") ?? document);
 
 const isTortieCheckbox = getElementByUniqueClassName(
   "tortie-checkbox",
@@ -397,8 +407,9 @@ function applyCompatibility() {
   });
 
   // every path that changes a select ends up here, so this is the one place
-  // the checkbox pickers need to resync from
+  // the pickers need to resync from
   refreshMultiPickers();
+  refreshSearchablePickers();
 }
 
 function redrawCat(applyURL: boolean = true) {
@@ -544,6 +555,7 @@ function redrawCat(applyURL: boolean = true) {
         updateUndoRedoButtons();
         history.pushState(null, "", dataURL);
         scheduleRecentSnapshot();
+        writeMakerDraft(params);
       }
       if (!paletteRow.classList.contains("hidden")) {
         renderPalette();
@@ -839,6 +851,201 @@ getElementByUniqueClassName("randomize-all-button")?.addEventListener(
     redrawCat();
   },
 );
+
+function clearMultiSelect(select: HTMLSelectElement) {
+  for (let i = 0; i < select.options.length; i++) {
+    select.options[i].selected = false;
+  }
+}
+
+function randomizeCategory(category: string) {
+  if (category === "body") {
+    if (!isLocked("sprite-no-select")) {
+      randomizeSelected(spriteNumberSelect);
+    }
+    if (!isLocked("pelt-name-select")) {
+      randomizeSelected(peltNameSelect);
+    }
+    if (!isLocked("colour-select")) {
+      if (
+        !randomizeSelected(colourSelect, (c) =>
+          peltSupportsColour(peltNameSelect.value, c),
+        )
+      ) {
+        randomizeSelected(colourSelect);
+      }
+    }
+    if (!isLocked("tint-select")) {
+      randomizeSelected(tintSelect);
+    }
+    isTortieCheckbox.checked = Math.random() <= 0.5;
+    if (!isLocked("tortie-pattern-select")) {
+      randomizeSelected(tortiePatternSelect);
+    }
+    if (!isLocked("tortie-colour-select")) {
+      randomizeSelected(tortieColourSelect);
+    }
+    if (!isLocked("tortie-mask-select")) {
+      randomizeSelected(tortieMaskSelect);
+    }
+    if (!isLocked("skin-colour-select")) {
+      randomizeSelected(skinColourSelect);
+    }
+    if (!isLocked("lineart-select")) {
+      randomizeSelected(lineartSelect);
+    }
+  } else if (category === "face") {
+    if (!isLocked("eye-colour-select")) {
+      randomizeSelected(eyeColourSelect);
+    }
+    if (!isLocked("eye-colour2-select")) {
+      if (Math.random() <= 0.5) {
+        randomizeSelected(eyeColour2Select);
+      } else {
+        eyeColour2Select.selectedIndex = 0;
+      }
+    }
+  } else if (category === "markings") {
+    if (!isLocked("white-patches-select")) {
+      clearMultiSelect(whitePatchesSelect);
+      if (Math.random() <= 0.5) {
+        const validWp = Array.from(whitePatchesSelect.options).filter(
+          (opt) => opt.value !== "" && !opt.disabled && !opt.hidden,
+        );
+        if (validWp.length > 0) {
+          const countWp = Math.floor(Math.random() * 2) + 1;
+          for (let i = 0; i < countWp; i++) {
+            validWp[Math.floor(Math.random() * validWp.length)].selected = true;
+          }
+        }
+      }
+    }
+    if (!isLocked("points-select")) {
+      if (Math.random() <= 0.5) {
+        randomizeSelected(pointsSelect);
+      } else {
+        pointsSelect.selectedIndex = 0;
+      }
+    }
+    if (!isLocked("white-patches-tint-select")) {
+      randomizeSelected(whitePatchesTintSelect);
+    }
+    if (!isLocked("vitiligo-select")) {
+      if (Math.random() <= 0.5) {
+        randomizeSelected(vitiligoSelect);
+      } else {
+        vitiligoSelect.selectedIndex = 0;
+      }
+    }
+  } else if (category === "additional") {
+    if (!isLocked("accessory-select")) {
+      if (Math.random() <= 0.5) {
+        randomizeSelected(accessorySelect);
+      } else {
+        clearMultiSelect(accessorySelect);
+      }
+    }
+    if (!isLocked("scar-select")) {
+      if (Math.random() <= 0.5) {
+        randomizeSelected(scarSelect);
+      } else {
+        clearMultiSelect(scarSelect);
+      }
+    }
+  } else if (category === "studio") {
+    // studio tools are opt-in; randomize leaves paint/adjust alone
+    return;
+  }
+  redrawCat();
+}
+
+function resetCategory(category: string) {
+  if (category === "body") {
+    if (!isLocked("sprite-no-select")) {
+      spriteNumberSelect.value = "0";
+    }
+    if (!isLocked("pelt-name-select")) {
+      peltNameSelect.value = "SingleColour";
+    }
+    if (!isLocked("colour-select")) {
+      colourSelect.value = "CREAM";
+    }
+    if (!isLocked("tint-select")) {
+      tintSelect.value = "none";
+    }
+    isTortieCheckbox.checked = false;
+    if (!isLocked("tortie-mask-select")) {
+      tortieMaskSelect.selectedIndex = 0;
+    }
+    if (!isLocked("tortie-pattern-select")) {
+      tortiePatternSelect.selectedIndex = 0;
+    }
+    if (!isLocked("tortie-colour-select")) {
+      tortieColourSelect.selectedIndex = 0;
+    }
+    if (!isLocked("skin-colour-select")) {
+      skinColourSelect.value = "BLACK";
+    }
+    if (!isLocked("lineart-select")) {
+      lineartSelect.value = "regular";
+    }
+  } else if (category === "face") {
+    if (!isLocked("eye-colour-select")) {
+      eyeColourSelect.value = "YELLOW";
+    }
+    if (!isLocked("eye-colour2-select")) {
+      eyeColour2Select.selectedIndex = 0;
+    }
+  } else if (category === "markings") {
+    if (!isLocked("white-patches-select")) {
+      clearMultiSelect(whitePatchesSelect);
+    }
+    if (!isLocked("points-select")) {
+      pointsSelect.selectedIndex = 0;
+    }
+    if (!isLocked("white-patches-tint-select")) {
+      whitePatchesTintSelect.value = "none";
+    }
+    if (!isLocked("vitiligo-select")) {
+      vitiligoSelect.selectedIndex = 0;
+    }
+  } else if (category === "additional") {
+    if (!isLocked("accessory-select")) {
+      clearMultiSelect(accessorySelect);
+    }
+    if (!isLocked("scar-select")) {
+      clearMultiSelect(scarSelect);
+    }
+  } else if (category === "studio") {
+    document.querySelector<HTMLButtonElement>(".adjust-reset-all-button")?.click();
+    document.querySelector<HTMLButtonElement>(".paint-clear-button")?.click();
+  }
+  redrawCat();
+}
+
+for (const button of Array.from(
+  document.querySelectorAll<HTMLButtonElement>(".category-randomize-button"),
+)) {
+  button.addEventListener("click", (e) => {
+    e.preventDefault();
+    const category = button.dataset.category;
+    if (category) {
+      randomizeCategory(category);
+    }
+  });
+}
+
+for (const button of Array.from(
+  document.querySelectorAll<HTMLButtonElement>(".category-reset-button"),
+)) {
+  button.addEventListener("click", (e) => {
+    e.preventDefault();
+    const category = button.dataset.category;
+    if (category) {
+      resetCategory(category);
+    }
+  });
+}
 
 const copyUrlButton = getElementByUniqueClassName("copy-url-button");
 if ("clipboard" in navigator) {
@@ -1321,7 +1528,7 @@ function renderRecentColours() {
   if (colours.length === 0) {
     const hint = document.createElement("span");
     hint.className = "paint-recent-empty";
-    hint.textContent = "—";
+    hint.textContent = "-";
     recentColoursContainer.appendChild(hint);
     return;
   }
@@ -2072,7 +2279,7 @@ function renderPalette() {
     swatch.type = "button";
     swatch.className = "palette-swatch";
     swatch.style.background = hex;
-    swatch.title = `${hex} — click to copy`;
+    swatch.title = `${hex} - click to copy`;
     swatch.addEventListener("click", () => {
       navigator.clipboard?.writeText(hex);
       swatch.classList.add("copied");
@@ -2123,7 +2330,7 @@ getElementByUniqueClassName("age-strip-button").addEventListener(
     } catch (err) {
       console.error(err);
       alert(
-        "Couldn't render every life stage — some selected parts may not " +
+        "Couldn't render every life stage - some selected parts may not " +
           "have art for all poses.",
       );
       return;
@@ -2385,7 +2592,7 @@ function refreshRecentsList() {
       hour: "2-digit",
       minute: "2-digit",
     });
-    const btn = makeThumbButton(entry.params, time, `${label} — ${time}`);
+    const btn = makeThumbButton(entry.params, time, `${label} - ${time}`);
     btn.addEventListener("click", (e) => {
       e.preventDefault();
       loadRecentDesign(entry.params);
@@ -2528,7 +2735,7 @@ copyGalleryLinkButton.addEventListener("click", (e) => {
   )}`;
   if (link.length > 30000) {
     alert(
-      "Your gallery is too large for a link — use 'Export gallery file' " +
+      "Your gallery is too large for a link - use 'Export gallery file' " +
         "instead.",
     );
     return;
@@ -2605,8 +2812,23 @@ loadNotesForSelection();
 
 refreshSavedCatsList();
 
+initMakerShell();
+
 addEventListener("popstate", () => {
   applyDataURL();
 });
 
-applyDataURL();
+{
+  const url = new URL(document.URL);
+  const hasCatParams = [...url.searchParams.keys()].some(
+    (k) => k !== "theme" && k !== "gallery",
+  );
+  const draft = readMakerDraft();
+  if (!hasCatParams && draft) {
+    catData = CatData.fromURL(`${url.origin}${url.pathname}${draft}`);
+    setFormFromObject(catData);
+    redrawCat(true);
+  } else {
+    applyDataURL();
+  }
+}
